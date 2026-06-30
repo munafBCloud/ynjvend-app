@@ -29,3 +29,9 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   function_name = aws_lambda_function.create_inventory.function_name
   principal     = "apigateway.amazonaws.com"
 }
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.ynj_api.id
+  name        = "$default"
+  auto_deploy = true
+}

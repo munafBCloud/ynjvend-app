@@ -17,10 +17,10 @@ def handler(event, context):
         item = {
             "productId": product_id,
             "productName": body.get("productName", ""),
-            "brand": body.get("brand", "")
+            "brand": body.get("brand", ""),
             "caseCost": str(body.get("caseCost", "0")),
             "quantityInStock": int(body.get("quantityInStock", "0")),
-            "lowStock": int(body.get("lowStock"",0)),
+            "lowStock": int(body.get("lowStock",0)),
             "createdAt": datetime.now(timezone.utc).isoformat()
         }
 
@@ -38,7 +38,7 @@ def handler(event, context):
            })
          }
 
-  except Exception as error:
+    except Exception as error:
       return {
          "statusCode": 500,
          "headers": {
