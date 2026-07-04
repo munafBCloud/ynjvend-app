@@ -30,6 +30,27 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   principal     = "apigateway.amazonaws.com"
 }
 
+resource "aws_apigatewayv2_integration" "get_inventory_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_inventory.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_inventory" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "GET /inventory"
+
+  target = "integrations/${aws_apigatewayv2_integration.get_inventory_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_get_inventory_api_gateway" {
+  statement_id  = "AllowGetInventoryAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_inventory.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"
