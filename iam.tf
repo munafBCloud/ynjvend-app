@@ -28,7 +28,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb_access" {
           "dynamodb:PutItem",
           "dynamodb:GetItem",
           "dynamodb:Scan",
-          "dynamodb:UpdateItem"
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
         ]
         Resource = [
           aws_dynamodb_table.inventory.arn,

@@ -72,6 +72,27 @@ resource "aws_lambda_permission" "allow_update_inventory_api_gateway" {
   principal     = "apigateway.amazonaws.com"
 }
 
+resource "aws_apigatewayv2_integration" "delete_inventory_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.delete_inventory.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "delete_inventory" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "DELETE /inventory"
+
+  target = "integrations/${aws_apigatewayv2_integration.delete_inventory_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_delete_inventory_api_gateway" {
+  statement_id  = "AllowDeleteInventoryAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_inventory.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"

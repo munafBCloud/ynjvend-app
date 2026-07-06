@@ -63,3 +63,25 @@ resource "aws_lambda_function" "update_inventory" {
     }
   }
 }
+
+data "archive_file" "delete_inventory_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/delete_inventory.py"
+  output_path = "${path.module}/lambda/delete_inventory.zip"
+}
+
+resource "aws_lambda_function" "delete_inventory" {
+  function_name = "${var.project_name}-${var.environment}-delete-inventory"
+  role          = aws_iam_role.lambda_execution_role.arn
+  handler       = "delete_inventory.lambda_handler"
+  runtime       = "python3.13"
+
+  filename         = data.archive_file.delete_inventory_zip.output_path
+  source_code_hash = data.archive_file.delete_inventory_zip.output_base64sha256
+
+  environment {
+    variables = {
+      INVENTORY_TABLE_NAME = aws_dynamodb_table.inventory.name
+    }
+  }
+}
