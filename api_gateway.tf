@@ -93,6 +93,48 @@ resource "aws_lambda_permission" "allow_delete_inventory_api_gateway" {
   principal     = "apigateway.amazonaws.com"
 }
 
+resource "aws_apigatewayv2_integration" "create_customer_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.create_customer.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "create_customer_route" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "POST /customers"
+  target    = "integrations/${aws_apigatewayv2_integration.create_customer_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_create_customer" {
+  statement_id  = "AllowExecutionFromAPICreateCustomer"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.create_customer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
+resource "aws_apigatewayv2_integration" "get_customers_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_customers.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_customers_route" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "GET /customers"
+  target    = "integrations/${aws_apigatewayv2_integration.get_customers_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_get_customers" {
+  statement_id  = "AllowExecutionFromAPIGetCustomers"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_customers.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"

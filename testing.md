@@ -51,3 +51,26 @@ Restest Result
 {"message": "Inventory product created successfully", "item": {"productId": "coke12", "productName": "Coke 12oz", "brand": "Coca-Cola", "caseCost": "12.50", "quantityInStock": 120, "lowStock": 0, "createdAt": "2026-06-30T22:47:17.252521+00:00"}}
 
 Test Successfull
+
+## Customer CRM Testing
+
+### POST /customers
+Tested creating a convenience store customer.
+
+Fields:
+- businessName
+- contactName
+- phone
+- locationAddress
+
+Result:
+- Customer successfully created
+- customerId auto-generated
+- Data saved to DynamoDB table ynj-dev-customers
+
+### GET /customers
+Tested retrieving all convenience store customers.
+
+Result:
+- API returned customer list
+- API returned customer count
