@@ -109,3 +109,23 @@ Result:
 - Returned total count
 - Ready for dashboard integration
 
+
+### PUT /requests
+
+Purpose:
+Update the fulfillment status of a product request.
+
+Fields tested:
+- requestId
+- status
+
+Statuses:
+- New
+- In Progress
+- Fulfilled
+- Cancelled
+
+Result:
+- Request status successfully updated
+- Updated request returned in API response
+

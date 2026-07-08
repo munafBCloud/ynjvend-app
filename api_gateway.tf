@@ -177,6 +177,27 @@ resource "aws_lambda_permission" "allow_api_get_requests" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
+resource "aws_apigatewayv2_integration" "update_request_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.update_request.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "update_request_route" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "PUT /requests"
+  target    = "integrations/${aws_apigatewayv2_integration.update_request_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_update_request" {
+  statement_id  = "AllowExecutionFromAPIUpdateRequest"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_request.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"
