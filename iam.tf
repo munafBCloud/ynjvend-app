@@ -33,7 +33,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb_access" {
         ]
         Resource = [
           aws_dynamodb_table.inventory.arn,
-          aws_dynamodb_table.customers.arn
+          aws_dynamodb_table.customers.arn,
+          aws_dynamodb_table.requests.arn
         ]
       }
     ]

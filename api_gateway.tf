@@ -135,6 +135,48 @@ resource "aws_lambda_permission" "allow_api_get_customers" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
+resource "aws_apigatewayv2_integration" "create_request_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.create_request.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "create_request_route" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "POST /requests"
+  target    = "integrations/${aws_apigatewayv2_integration.create_request_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_create_request" {
+  statement_id  = "AllowExecutionFromAPICreateRequest"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.create_request.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
+resource "aws_apigatewayv2_integration" "get_requests_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_requests.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_requests_route" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "GET /requests"
+  target    = "integrations/${aws_apigatewayv2_integration.get_requests_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_get_requests" {
+  statement_id  = "AllowExecutionFromAPIGetRequests"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_requests.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"

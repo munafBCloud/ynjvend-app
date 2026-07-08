@@ -74,3 +74,38 @@ Tested retrieving all convenience store customers.
 Result:
 - API returned customer list
 - API returned customer count
+
+## Product Request Testing
+
+### POST /requests
+
+Purpose:
+Convenience store submits a wholesale product request.
+
+Fields tested:
+- customerId
+- businessName
+- productId
+- productName
+- quantityRequested
+
+System generated:
+- requestId
+- status = New
+- requestedAt timestamp
+
+Result:
+- Request successfully created
+- Data saved to ynj-dev-requests DynamoDB table
+
+
+### GET /requests
+
+Purpose:
+Retrieve all customer product requests.
+
+Result:
+- Returned request list
+- Returned total count
+- Ready for dashboard integration
+
