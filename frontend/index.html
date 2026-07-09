@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YNJ Vend Dashboard</title>
+</head>
+<body>
+  <h1>YNJ Vend Dashboard</h1>
+
+  <section>
+    <h2>Customers</h2>
+    <button onclick="loadCustomers()">Load Customers</button>
+    <div id="customers"></div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>Inventory</h2>
+    <button onclick="loadInventory()">Load Inventory</button>
+    <div id="inventory"></div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2>Product Requests</h2>
+    <button onclick="loadRequests()">Load Requests</button>
+    <div id="requests"></div>
+  </section>
+
+  <script>
+    const API_BASE = "https://ra280rph8l.execute-api.us-east-1.amazonaws.com";
+
+    async function loadCustomers() {
+      const response = await fetch(`${API_BASE}/customers`);
+      const data = await response.json();
+
+      const container = document.getElementById("customers");
+      container.innerHTML = "";
+
+      data.customers.forEach(customer => {
+        container.innerHTML += `
+          <p>
+            <strong>${customer.businessName}</strong><br>
+            Contact: ${customer.contactName}<br>
+            Phone: ${customer.phone}<br>
+            Address: ${customer.locationAddress}
+          </p>
+        `;
+      });
+    }
+
+    async function loadInventory() {
+      const response = await fetch(`${API_BASE}/inventory`);
+      const data = await response.json();
+
+      const container = document.getElementById("inventory");
+      container.innerHTML = "";
+
+      data.items.forEach(item => {
+        container.innerHTML += `
+          <p>
+            <strong>${item.productName}</strong><br>
+            Brand: ${item.brand}<br>
+            Stock: ${item.quantityInStock}<br>
+            Selling Price: $${item.sellingPrice}
+          </p>
+        `;
+      });
+    }
+
+    async function loadRequests() {
+      const response = await fetch(`${API_BASE}/requests`);
+      const data = await response.json();
+
+      const container = document.getElementById("requests");
+      container.innerHTML = "";
+
+      data.requests.forEach(request => {
+        container.innerHTML += `
+          <p>
+            <strong>${request.businessName}</strong><br>
+            Product: ${request.productName}<br>
+            Quantity: ${request.quantityRequested}<br>
+            Status: ${request.status}<br>
+            Requested At: ${request.requestedAt}
+          </p>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>
