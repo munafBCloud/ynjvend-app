@@ -9,6 +9,12 @@ resource "aws_apigatewayv2_api" "ynj_api" {
   }
 }
 
+
+# ---------------------------------------------------------
+# CREATE INVENTORY
+# Existing administrative route: POST /inventory
+# ---------------------------------------------------------
+
 resource "aws_apigatewayv2_integration" "create_inventory_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
   integration_type       = "AWS_PROXY"
@@ -19,8 +25,7 @@ resource "aws_apigatewayv2_integration" "create_inventory_integration" {
 resource "aws_apigatewayv2_route" "post_inventory" {
   api_id    = aws_apigatewayv2_api.ynj_api.id
   route_key = "POST /inventory"
-
-  target = "integrations/${aws_apigatewayv2_integration.create_inventory_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.create_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
@@ -28,7 +33,14 @@ resource "aws_lambda_permission" "allow_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.create_inventory.function_name
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# GET FULL INVENTORY
+# Existing owner-dashboard route: GET /inventory
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "get_inventory_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
@@ -40,8 +52,7 @@ resource "aws_apigatewayv2_integration" "get_inventory_integration" {
 resource "aws_apigatewayv2_route" "get_inventory" {
   api_id    = aws_apigatewayv2_api.ynj_api.id
   route_key = "GET /inventory"
-
-  target = "integrations/${aws_apigatewayv2_integration.get_inventory_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.get_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_get_inventory_api_gateway" {
@@ -49,7 +60,41 @@ resource "aws_lambda_permission" "allow_get_inventory_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.get_inventory.function_name
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# GET PUBLIC INVENTORY
+# New customer-safe route: GET /public/inventory
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "get_public_inventory_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_public_inventory.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_public_inventory" {
+  api_id    = aws_apigatewayv2_api.ynj_api.id
+  route_key = "GET /public/inventory"
+  target    = "integrations/${aws_apigatewayv2_integration.get_public_inventory_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_get_public_inventory_api_gateway" {
+  statement_id  = "AllowGetPublicInventoryAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_public_inventory.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}
+
+
+# ---------------------------------------------------------
+# UPDATE INVENTORY
+# Existing administrative route: PUT /inventory
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "update_inventory_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
@@ -61,8 +106,7 @@ resource "aws_apigatewayv2_integration" "update_inventory_integration" {
 resource "aws_apigatewayv2_route" "put_inventory" {
   api_id    = aws_apigatewayv2_api.ynj_api.id
   route_key = "PUT /inventory"
-
-  target = "integrations/${aws_apigatewayv2_integration.update_inventory_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.update_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_update_inventory_api_gateway" {
@@ -70,7 +114,14 @@ resource "aws_lambda_permission" "allow_update_inventory_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.update_inventory.function_name
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# DELETE INVENTORY
+# Existing administrative route: DELETE /inventory
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "delete_inventory_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
@@ -82,8 +133,7 @@ resource "aws_apigatewayv2_integration" "delete_inventory_integration" {
 resource "aws_apigatewayv2_route" "delete_inventory" {
   api_id    = aws_apigatewayv2_api.ynj_api.id
   route_key = "DELETE /inventory"
-
-  target = "integrations/${aws_apigatewayv2_integration.delete_inventory_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.delete_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_delete_inventory_api_gateway" {
@@ -91,7 +141,14 @@ resource "aws_lambda_permission" "allow_delete_inventory_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.delete_inventory.function_name
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# CREATE CUSTOMER
+# Existing route: POST /customers
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "create_customer_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
@@ -114,6 +171,12 @@ resource "aws_lambda_permission" "allow_api_create_customer" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
+
+# ---------------------------------------------------------
+# GET CUSTOMERS
+# Existing owner-dashboard route: GET /customers
+# ---------------------------------------------------------
+
 resource "aws_apigatewayv2_integration" "get_customers_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
   integration_type       = "AWS_PROXY"
@@ -134,6 +197,12 @@ resource "aws_lambda_permission" "allow_api_get_customers" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# CREATE PRODUCT REQUEST
+# Existing public customer route: POST /requests
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_integration" "create_request_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
@@ -156,6 +225,12 @@ resource "aws_lambda_permission" "allow_api_create_request" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
+
+# ---------------------------------------------------------
+# GET PRODUCT REQUESTS
+# Existing owner-dashboard route: GET /requests
+# ---------------------------------------------------------
+
 resource "aws_apigatewayv2_integration" "get_requests_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
   integration_type       = "AWS_PROXY"
@@ -177,6 +252,12 @@ resource "aws_lambda_permission" "allow_api_get_requests" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
+
+# ---------------------------------------------------------
+# UPDATE PRODUCT REQUEST
+# Existing owner-dashboard route: PUT /requests
+# ---------------------------------------------------------
+
 resource "aws_apigatewayv2_integration" "update_request_integration" {
   api_id                 = aws_apigatewayv2_api.ynj_api.id
   integration_type       = "AWS_PROXY"
@@ -197,6 +278,11 @@ resource "aws_lambda_permission" "allow_api_update_request" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# DEFAULT API STAGE
+# ---------------------------------------------------------
 
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
