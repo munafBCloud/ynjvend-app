@@ -11,6 +11,8 @@ import ProductsPage from "./pages/ProductsPage";
 import RequestPage from "./pages/RequestPage";
 import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
+import OwnerCustomersPage from "./pages/owner/OwnerCustomersPage";
+import OwnerInventoryPage from "./pages/owner/OwnerInventoryPage";
 
 export default function App() {
   return (
@@ -23,9 +25,16 @@ export default function App() {
         <Route path="/contact" element={<ContactPage />} />
       </Route>
 
-      <Route path="/owner" element={<OwnerLayout />}>
-        <Route index element={<OwnerDashboardPage />} />
-        <Route path="requests" element={<OwnerRequestsPage />} />
+     <Route path="/owner" element={<OwnerLayout />}>
+       <Route index element={<OwnerDashboardPage />} />
+       <Route path="requests" element={<OwnerRequestsPage />} />
+       <Route path="customers" element={<OwnerCustomersPage />} />
+      </Route>
+     <Route path="/owner" element={<OwnerLayout />}>
+       <Route index element={<OwnerDashboardPage />} />
+       <Route path="requests" element={<OwnerRequestsPage />} />
+       <Route path="customers" element={<OwnerCustomersPage />} />
+       <Route path="inventory" element={<OwnerInventoryPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

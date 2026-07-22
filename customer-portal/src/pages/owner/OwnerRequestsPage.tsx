@@ -1,37 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 
-type ProductRequest = {
-  requestId: string;
-  customerId: string;
-  businessName: string;
-  productId: string;
-  productName: string;
-  quantityRequested: number;
-  status: string;
-  requestedAt: string;
-};
+import type {
+  ProductRequest,
+  RequestStatus,
+} from "../../types/request";
 
-type RequestsResponse = {
-  requests: ProductRequest[];
-  count?: number;
-};
-
-type UpdateRequestResponse = {
-  message: string;
-  request: ProductRequest;
-};
-
-const API_BASE_URL =
-  "https://ra280rph8l.execute-api.us-east-1.amazonaws.com";
+import {
+  getRequests,
+  updateRequestStatus as updateRequestStatusApi,
+} from "../../services/requests";
 
 const STATUS_FILTERS = [
   "All",
   "New",
   "In Progress",
   "Completed",
-];
+] as const;
 
-const REQUEST_STATUSES = [
+const REQUEST_STATUSES: RequestStatus[] = [
   "New",
   "In Progress",
   "Completed",
@@ -39,11 +25,14 @@ const REQUEST_STATUSES = [
 
 export default function OwnerRequestsPage() {
   const [requests, setRequests] = useState<ProductRequest[]>([]);
+
   const [selectedStatuses, setSelectedStatuses] = useState<
-    Record<string, string>
+    Record<string, RequestStatus>
   >({});
+
   const [updatingRequestId, setUpdatingRequestId] =
     useState<string | null>(null);
+
   const [successMessage, setSuccessMessage] = useState("");
   const [updateError, setUpdateError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,23 +46,11 @@ export default function OwnerRequestsPage() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_BASE_URL}/requests`);
-
-        if (!response.ok) {
-          throw new Error(
-            `Unable to load requests. API returned ${response.status}.`
-          );
-        }
-
-        const data = (await response.json()) as RequestsResponse;
-
-        const loadedRequests = Array.isArray(data.requests)
-          ? data.requests
-          : [];
+        const loadedRequests = await getRequests();
 
         setRequests(loadedRequests);
 
-        const initialStatuses: Record<string, string> = {};
+        const initialStatuses: Record<string, RequestStatus> = {};
 
         loadedRequests.forEach((request) => {
           initialStatuses[request.requestId] = request.status;
@@ -129,19 +106,24 @@ export default function OwnerRequestsPage() {
   const requestCounts = useMemo(() => {
     return {
       total: requests.length,
+
       new: requests.filter(
         (request) => request.status === "New"
       ).length,
+
       inProgress: requests.filter(
         (request) => request.status === "In Progress"
       ).length,
+
       completed: requests.filter(
         (request) => request.status === "Completed"
       ).length,
     };
   }, [requests]);
 
-  async function updateRequestStatus(requestId: string) {
+  async function handleUpdateRequestStatus(
+    requestId: string
+  ) {
     const selectedStatus = selectedStatuses[requestId];
 
     if (!selectedStatus) {
@@ -154,39 +136,24 @@ export default function OwnerRequestsPage() {
       setSuccessMessage("");
       setUpdateError("");
 
-      const response = await fetch(`${API_BASE_URL}/requests`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestId,
-          status: selectedStatus,
-        }),
-      });
-
-      const data =
-        (await response.json()) as UpdateRequestResponse;
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Unable to update request."
-        );
-      }
+      await updateRequestStatusApi(
+        requestId,
+        selectedStatus
+      );
 
       setRequests((currentRequests) =>
         currentRequests.map((request) =>
           request.requestId === requestId
             ? {
                 ...request,
-                status: data.request.status,
+                status: selectedStatus,
               }
             : request
         )
       );
 
       setSuccessMessage(
-        `Request status updated to ${data.request.status}.`
+        `Request status updated to ${selectedStatus}.`
       );
     } catch (error) {
       console.error("Unable to update request:", error);
@@ -217,7 +184,7 @@ export default function OwnerRequestsPage() {
     }).format(date);
   }
 
-  function getStatusClasses(status: string) {
+  function getStatusClasses(status: RequestStatus) {
     if (status === "New") {
       return "bg-blue-100 text-blue-800";
     }
@@ -392,8 +359,12 @@ export default function OwnerRequestsPage() {
                         <TableHeading>Business</TableHeading>
                         <TableHeading>Product</TableHeading>
                         <TableHeading>Quantity</TableHeading>
-                        <TableHeading>Current Status</TableHeading>
-                        <TableHeading>Update Status</TableHeading>
+                        <TableHeading>
+                          Current Status
+                        </TableHeading>
+                        <TableHeading>
+                          Update Status
+                        </TableHeading>
                         <TableHeading>Submitted</TableHeading>
                       </tr>
                     </thead>
@@ -401,14 +372,16 @@ export default function OwnerRequestsPage() {
                     <tbody className="divide-y divide-slate-200">
                       {filteredRequests.map((request) => {
                         const selectedStatus =
-                          selectedStatuses[request.requestId] ||
-                          request.status;
+                          selectedStatuses[
+                            request.requestId
+                          ] || request.status;
 
                         const statusHasChanged =
                           selectedStatus !== request.status;
 
                         const isUpdating =
-                          updatingRequestId === request.requestId;
+                          updatingRequestId ===
+                          request.requestId;
 
                         return (
                           <tr
@@ -445,7 +418,9 @@ export default function OwnerRequestsPage() {
                               <span
                                 className={[
                                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                  getStatusClasses(request.status),
+                                  getStatusClasses(
+                                    request.status
+                                  ),
                                 ].join(" ")}
                               >
                                 {request.status}
@@ -458,10 +433,13 @@ export default function OwnerRequestsPage() {
                                   value={selectedStatus}
                                   onChange={(event) =>
                                     setSelectedStatuses(
-                                      (currentStatuses) => ({
+                                      (
+                                        currentStatuses
+                                      ) => ({
                                         ...currentStatuses,
                                         [request.requestId]:
-                                          event.target.value,
+                                          event.target
+                                            .value as RequestStatus,
                                       })
                                     )
                                   }
@@ -483,12 +461,13 @@ export default function OwnerRequestsPage() {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    void updateRequestStatus(
+                                    void handleUpdateRequestStatus(
                                       request.requestId
                                     )
                                   }
                                   disabled={
-                                    !statusHasChanged || isUpdating
+                                    !statusHasChanged ||
+                                    isUpdating
                                   }
                                   className="rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
@@ -501,7 +480,9 @@ export default function OwnerRequestsPage() {
 
                             <TableCell>
                               <span className="whitespace-nowrap text-sm text-slate-600">
-                                {formatDate(request.requestedAt)}
+                                {formatDate(
+                                  request.requestedAt
+                                )}
                               </span>
                             </TableCell>
                           </tr>
