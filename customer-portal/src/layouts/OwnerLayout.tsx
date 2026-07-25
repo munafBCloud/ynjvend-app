@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router";
 
 const ownerNavigation = [
   { label: "Dashboard", path: "/owner" },
-  { label: "Requests", path: "/owner/requests" },
+  { label: "Orders", path: "/owner/orders" },
   { label: "Customers", path: "/owner/customers" },
   { label: "Inventory", path: "/owner/inventory" },
 ];
