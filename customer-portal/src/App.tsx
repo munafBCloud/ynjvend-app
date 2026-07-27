@@ -1,5 +1,7 @@
 import { Route, Routes } from "react-router";
 
+import ProtectedRoute from "./auth/ProtectedRoute";
+
 import CustomerLayout from "./layouts/CustomerLayout";
 import OwnerLayout from "./layouts/OwnerLayout";
 
@@ -9,11 +11,13 @@ import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProductsPage from "./pages/ProductsPage";
 import RequestPage from "./pages/RequestPage";
+import LoginPage from "./pages/auth/LoginPage";
 
 import OwnerCustomersPage from "./pages/owner/OwnerCustomersPage";
 import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import OwnerInventoryPage from "./pages/owner/OwnerInventoryPage";
 import OwnerOrdersPage from "./pages/owner/OwnerOrdersPage";
+import OwnerRequestsPage from "./pages/owner/OwnerRequestsPage";
 
 export default function App() {
   return (
@@ -26,10 +30,20 @@ export default function App() {
         <Route path="/contact" element={<ContactPage />} />
       </Route>
 
-      <Route path="/owner" element={<OwnerLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route
+        path="/owner"
+        element={
+          <ProtectedRoute>
+            <OwnerLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<OwnerDashboardPage />} />
-        <Route path="orders" element={<OwnerOrdersPage />} />
         <Route path="customers" element={<OwnerCustomersPage />} />
+        <Route path="requests" element={<OwnerRequestsPage />} />
+        <Route path="orders" element={<OwnerOrdersPage />} />
         <Route path="inventory" element={<OwnerInventoryPage />} />
       </Route>
 

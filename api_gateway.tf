@@ -9,6 +9,28 @@ resource "aws_apigatewayv2_api" "ynj_api" {
   }
 }
 
+# ---------------------------------------------------------
+# Cognito JWT Authorizer
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  name            = "ynj-cognito-jwt"
+  authorizer_type = "JWT"
+
+  identity_sources = [
+    "$request.header.Authorization"
+  ]
+
+  jwt_configuration {
+    audience = [
+      aws_cognito_user_pool_client.owner_portal.id
+    ]
+
+    issuer = "https://${aws_cognito_user_pool.ynj_users.endpoint}"
+  }
+}
 
 # ---------------------------------------------------------
 # CREATE INVENTORY
@@ -23,9 +45,11 @@ resource "aws_apigatewayv2_integration" "create_inventory_integration" {
 }
 
 resource "aws_apigatewayv2_route" "post_inventory" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "POST /inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.create_inventory_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "POST /inventory"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.create_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
@@ -50,9 +74,11 @@ resource "aws_apigatewayv2_integration" "get_inventory_integration" {
 }
 
 resource "aws_apigatewayv2_route" "get_inventory" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "GET /inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.get_inventory_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /inventory"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.get_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_get_inventory_api_gateway" {
@@ -104,9 +130,11 @@ resource "aws_apigatewayv2_integration" "update_inventory_integration" {
 }
 
 resource "aws_apigatewayv2_route" "put_inventory" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "PUT /inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.update_inventory_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "PUT /inventory"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.update_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_update_inventory_api_gateway" {
@@ -131,9 +159,11 @@ resource "aws_apigatewayv2_integration" "delete_inventory_integration" {
 }
 
 resource "aws_apigatewayv2_route" "delete_inventory" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "DELETE /inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.delete_inventory_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "DELETE /inventory"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.delete_inventory_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_delete_inventory_api_gateway" {
@@ -158,9 +188,11 @@ resource "aws_apigatewayv2_integration" "create_customer_integration" {
 }
 
 resource "aws_apigatewayv2_route" "create_customer_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "POST /customers"
-  target    = "integrations/${aws_apigatewayv2_integration.create_customer_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "POST /customers"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.create_customer_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_create_customer" {
@@ -185,9 +217,11 @@ resource "aws_apigatewayv2_integration" "get_customers_integration" {
 }
 
 resource "aws_apigatewayv2_route" "get_customers_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "GET /customers"
-  target    = "integrations/${aws_apigatewayv2_integration.get_customers_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /customers"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.get_customers_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_get_customers" {
@@ -239,9 +273,11 @@ resource "aws_apigatewayv2_integration" "get_requests_integration" {
 }
 
 resource "aws_apigatewayv2_route" "get_requests_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "GET /requests"
-  target    = "integrations/${aws_apigatewayv2_integration.get_requests_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /requests"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.get_requests_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_get_requests" {
@@ -266,9 +302,11 @@ resource "aws_apigatewayv2_integration" "update_request_integration" {
 }
 
 resource "aws_apigatewayv2_route" "update_request_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "PUT /requests"
-  target    = "integrations/${aws_apigatewayv2_integration.update_request_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "PUT /requests"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.update_request_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_update_request" {
@@ -292,9 +330,11 @@ resource "aws_apigatewayv2_integration" "create_order_integration" {
 }
 
 resource "aws_apigatewayv2_route" "create_order_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "POST /orders"
-  target    = "integrations/${aws_apigatewayv2_integration.create_order_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "POST /orders"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.create_order_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_create_order" {
@@ -318,9 +358,11 @@ resource "aws_apigatewayv2_integration" "get_orders_integration" {
 }
 
 resource "aws_apigatewayv2_route" "get_orders_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "GET /orders"
-  target    = "integrations/${aws_apigatewayv2_integration.get_orders_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /orders"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.get_orders_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_get_orders" {
@@ -344,9 +386,11 @@ resource "aws_apigatewayv2_integration" "update_order_integration" {
 }
 
 resource "aws_apigatewayv2_route" "update_order_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "PUT /orders/{orderId}"
-  target    = "integrations/${aws_apigatewayv2_integration.update_order_integration.id}"
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "PUT /orders/{orderId}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+  target             = "integrations/${aws_apigatewayv2_integration.update_order_integration.id}"
 }
 
 resource "aws_lambda_permission" "allow_api_update_order" {

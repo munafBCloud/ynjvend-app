@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { apiRequest } from "../../services/api";
 
 type Customer = {
   customerId: string;
@@ -43,9 +44,6 @@ type InventoryResponse = {
   count: number;
 };
 
-const API_BASE_URL =
-  "https://ra280rph8l.execute-api.us-east-1.amazonaws.com";
-
 export default function OwnerDashboardPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [requests, setRequests] = useState<ProductRequest[]>([]);
@@ -59,33 +57,12 @@ export default function OwnerDashboardPage() {
         setLoading(true);
         setError("");
 
-        const [customersResponse, requestsResponse, inventoryResponse] =
-          await Promise.all([
-            fetch(`${API_BASE_URL}/customers`),
-            fetch(`${API_BASE_URL}/requests`),
-            fetch(`${API_BASE_URL}/inventory`),
-          ]);
-
-        if (!customersResponse.ok) {
-          throw new Error("Unable to load customers.");
-        }
-
-        if (!requestsResponse.ok) {
-          throw new Error("Unable to load requests.");
-        }
-
-        if (!inventoryResponse.ok) {
-          throw new Error("Unable to load inventory.");
-        }
-
-        const customersData =
-          (await customersResponse.json()) as CustomersResponse;
-
-        const requestsData =
-          (await requestsResponse.json()) as RequestsResponse;
-
-        const inventoryData =
-          (await inventoryResponse.json()) as InventoryResponse;
+  const [customersData, requestsData, inventoryData] =
+    await Promise.all([
+      apiRequest<CustomersResponse>("/customers"),
+      apiRequest<RequestsResponse>("/requests"),
+      apiRequest<InventoryResponse>("/inventory"),
+  ]);
 
         setCustomers(
           Array.isArray(customersData.customers)

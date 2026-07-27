@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import type { InventoryItem } from "../../types/inventory";
-import { getInventory } from "../../services/inventory";
+
+import InventoryModal from "../../components/InventoryModal";
+
+import {
+  createInventory,
+  getInventory,
+} from "../../services/inventory";
+
+import type {
+  CreateInventoryInput,
+  InventoryItem,
+} from "../../types/inventory";
 
 export default function OwnerInventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -8,6 +18,12 @@ export default function OwnerInventoryPage() {
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [isInventoryModalOpen, setIsInventoryModalOpen] =
+    useState(false);
+
+  const [inventoryActionError, setInventoryActionError] =
+    useState("");
 
   useEffect(() => {
     async function loadInventory() {
@@ -17,7 +33,7 @@ export default function OwnerInventoryPage() {
 
         const items = await getInventory();
 
-        setInventory(items); 
+        setInventory(items);
       } catch (error) {
         console.error("Unable to load inventory:", error);
 
@@ -33,6 +49,31 @@ export default function OwnerInventoryPage() {
 
     void loadInventory();
   }, []);
+
+  async function handleCreateInventory(
+    input: CreateInventoryInput
+  ) {
+    try {
+      setInventoryActionError("");
+
+      await createInventory(input);
+
+      const refreshedInventory = await getInventory();
+
+      setInventory(refreshedInventory);
+    } catch (error) {
+      console.error("Unable to create inventory:", error);
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to create inventory.";
+
+      setInventoryActionError(message);
+
+      throw error;
+    }
+  }
 
   const lowStockItems = useMemo(
     () =>
@@ -105,20 +146,41 @@ export default function OwnerInventoryPage() {
   return (
     <section className="px-6 py-10">
       <div className="mx-auto max-w-7xl">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-            Inventory Management
-          </p>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
+              Inventory Management
+            </p>
 
-          <h2 className="mt-2 text-3xl font-bold text-slate-950">
-            Product Inventory
-          </h2>
+            <h2 className="mt-2 text-3xl font-bold text-slate-950">
+              Product Inventory
+            </h2>
 
-          <p className="mt-3 text-slate-600">
-            Review stock levels, product costs, and items that
-            may need to be reordered.
-          </p>
+            <p className="mt-3 text-slate-600">
+              Review stock levels, product costs, and items that
+              may need to be reordered.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setInventoryActionError("");
+              setIsInventoryModalOpen(true);
+            }}
+            className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800"
+          >
+            + Add Inventory
+          </button>
         </div>
+
+        {inventoryActionError && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-800">
+              {inventoryActionError}
+            </p>
+          </div>
+        )}
 
         {loading && (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -189,7 +251,9 @@ export default function OwnerInventoryPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowLowStockOnly((currentValue) => !currentValue)
+                    setShowLowStockOnly(
+                      (currentValue) => !currentValue
+                    )
                   }
                   className={[
                     "rounded-xl px-5 py-3 text-sm font-semibold transition",
@@ -236,7 +300,9 @@ export default function OwnerInventoryPage() {
                         <TableHeading>Product</TableHeading>
                         <TableHeading>Brand</TableHeading>
                         <TableHeading>In Stock</TableHeading>
-                        <TableHeading>Low Stock Level</TableHeading>
+                        <TableHeading>
+                          Low Stock Level
+                        </TableHeading>
                         <TableHeading>Case Cost</TableHeading>
                         <TableHeading>Status</TableHeading>
                         <TableHeading>Created</TableHeading>
@@ -318,6 +384,12 @@ export default function OwnerInventoryPage() {
           </>
         )}
       </div>
+
+      <InventoryModal
+        open={isInventoryModalOpen}
+        onClose={() => setIsInventoryModalOpen(false)}
+        onSubmit={handleCreateInventory}
+      />
     </section>
   );
 }
