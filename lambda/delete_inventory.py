@@ -1,76 +1,151 @@
 import json
+import logging
 import os
-import boto3
 from decimal import Decimal
+
+import boto3
+from botocore.exceptions import ClientError
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["INVENTORY_TABLE_NAME"])
 
-def decimal_default(obj):
-    if isinstance(obj, Decimal):
-        return float(obj)
-    raise TypeError
+
+def decimal_default(value):
+    if isinstance(value, Decimal):
+        return float(value)
+
+    raise TypeError(
+        f"Object of type {type(value).__name__} "
+        "is not JSON serializable"
+    )
+
+
+def response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps(
+            body,
+            default=decimal_default,
+        ),
+    }
+
+
+def get_company_id(event):
+    try:
+        claims = (
+            event["requestContext"]
+            ["authorizer"]
+            ["jwt"]
+            ["claims"]
+        )
+
+        return claims.get("custom:companyId", "").strip()
+
+    except (KeyError, TypeError, AttributeError):
+        return ""
+
 
 def lambda_handler(event, context):
     try:
-        body = json.loads(event.get("body", "{}"))
+        company_id = get_company_id(event)
 
-        product_id = body.get("productId")
+        if not company_id:
+            return response(
+                403,
+                {
+                    "message": "Company access could not be verified."
+                },
+            )
+
+        try:
+            body = json.loads(event.get("body") or "{}")
+        except json.JSONDecodeError:
+            return response(
+                400,
+                {
+                    "message": "Request body must contain valid JSON."
+                },
+            )
+
+        if not isinstance(body, dict):
+            return response(
+                400,
+                {
+                    "message": "Request body must be a JSON object."
+                },
+            )
+
+        product_id = str(body.get("productId", "")).strip()
 
         if not product_id:
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*"
+            return response(
+                400,
+                {
+                    "message": "productId is required."
                 },
-                "body": json.dumps({
-                    "message": "productId is required"
-                })
-            }
+            )
 
-        response = table.delete_item(
+        dynamodb_response = table.delete_item(
             Key={
-                "productId": product_id
+                "companyId": company_id,
+                "productId": product_id,
             },
-            ReturnValues="ALL_OLD"
+            ConditionExpression=(
+                "attribute_exists(companyId) "
+                "AND attribute_exists(productId)"
+            ),
+            ReturnValues="ALL_OLD",
         )
 
-        deleted_item = response.get("Attributes")
+        return response(
+            200,
+            {
+                "message": "Inventory product deleted successfully.",
+                "deletedItem": dynamodb_response.get(
+                    "Attributes",
+                    {},
+                ),
+            },
+        )
 
-        if not deleted_item:
-            return {
-                "statusCode": 404,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*"
+    except ClientError as error:
+        error_code = (
+            error.response
+            .get("Error", {})
+            .get("Code", "")
+        )
+
+        if error_code == "ConditionalCheckFailedException":
+            return response(
+                404,
+                {
+                    "message": "Inventory product not found."
                 },
-                "body": json.dumps({
-                    "message": "Inventory item not found"
-                })
-            }
+            )
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps({
-                "message": "Inventory item deleted successfully",
-                "deletedItem": deleted_item
-            }, default=decimal_default)
-        }
+        logger.exception("DynamoDB error deleting inventory product")
 
-    except Exception as error:
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
+        return response(
+            500,
+            {
+                "message": "Unable to delete inventory product."
             },
-            "body": json.dumps({
-                "message": "Error deleting inventory item",
-                "error": str(error)
-            })
-        }
+        )
+
+    except Exception:
+        logger.exception("Unexpected error deleting inventory product")
+
+        return response(
+            500,
+            {
+                "message": "Unable to delete inventory product."
+            },
+        )
