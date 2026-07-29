@@ -1,0 +1,13 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "tenant-isolation-test-user",
+          "custom:companyId": "company-other-001",
+          "custom:role": "owner"
+        }
+      }
+    }
+  }
+}

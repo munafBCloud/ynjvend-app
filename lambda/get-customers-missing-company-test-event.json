@@ -1,0 +1,12 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "missing-company-test-user",
+          "custom:role": "owner"
+        }
+      }
+    }
+  }
+}

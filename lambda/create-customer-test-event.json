@@ -1,0 +1,14 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "2458a4a8-b0e1-7098-7373-98cf647be318",
+          "custom:companyId": "company-ynj-001",
+          "custom:role": "owner"
+        }
+      }
+    }
+  },
+  "body": "{\"businessName\":\"Tenant Test Market\",\"contactName\":\"Test Customer\",\"phone\":\"555-0100\",\"locationAddress\":\"100 Test Avenue\"}"
+}

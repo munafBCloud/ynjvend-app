@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
@@ -44,6 +45,29 @@ def api_response(status_code, body):
     }
 
 
+def get_jwt_claims(event):
+    return (
+        event
+        .get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+
+
+def get_company_id(event):
+    claims = get_jwt_claims(event)
+
+    company_id = claims.get("custom:companyId")
+
+    if not isinstance(company_id, str):
+        return None
+
+    company_id = company_id.strip()
+
+    return company_id or None
+
+
 def validate_text(body, field, maximum_length):
     value = body.get(field)
 
@@ -66,6 +90,22 @@ def validate_text(body, field, maximum_length):
 
 def lambda_handler(event, context):
     try:
+        company_id = get_company_id(event)
+
+        if not company_id:
+            logger.warning(
+                "Authenticated request is missing custom:companyId"
+            )
+
+            return api_response(
+                403,
+                {
+                    "message": (
+                        "Your account is not assigned to a company"
+                    )
+                }
+            )
+
         raw_body = event.get("body")
 
         if not raw_body:
@@ -121,7 +161,10 @@ def lambda_handler(event, context):
             for field, limit in TEXT_LIMITS.items()
         }
 
+        now = datetime.now(timezone.utc).isoformat()
+
         customer = {
+            "companyId": company_id,
             "customerId": str(uuid.uuid4()),
             "businessName": validated_customer["businessName"],
             "contactName": validated_customer["contactName"],
@@ -129,18 +172,23 @@ def lambda_handler(event, context):
             "locationAddress": validated_customer[
                 "locationAddress"
             ],
+            "status": "active",
+            "createdAt": now,
+            "updatedAt": now,
         }
 
         table.put_item(
             Item=customer,
             ConditionExpression=(
-                "attribute_not_exists(customerId)"
+                "attribute_not_exists(companyId) "
+                "AND attribute_not_exists(customerId)"
             ),
         )
 
         logger.info(
-            "Created customer %s",
+            "Created customer %s for company %s",
             customer["customerId"],
+            company_id,
         )
 
         return api_response(
