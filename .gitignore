@@ -31,3 +31,21 @@ Thumbs.db
 .env.local
 .env.*
 !.env.example
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local backup files
+*.backup
+
+# macOS
+.DS_Store
+
+# VS Code workspace settings (optional)
+.vscode/
+
+# Terraform local state
+.terraform/
+*.tfstate
+*.tfstate.*
