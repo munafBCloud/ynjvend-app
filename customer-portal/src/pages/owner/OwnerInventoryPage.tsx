@@ -75,10 +75,10 @@ export default function OwnerInventoryPage() {
     }
   }
 
-  const lowStockItems = useMemo(
+  const reorderLevelItems = useMemo(
     () =>
       inventory.filter(
-        (item) => item.quantityInStock <= item.lowStock
+        (item) => item.quantityInStock <= item.reorderLevel
       ),
     [inventory]
   );
@@ -107,7 +107,7 @@ export default function OwnerInventoryPage() {
 
         const matchesLowStock =
           !showLowStockOnly ||
-          item.quantityInStock <= item.lowStock;
+          item.quantityInStock <= item.reorderLevel;
 
         return matchesSearch && matchesLowStock;
       })
@@ -116,7 +116,7 @@ export default function OwnerInventoryPage() {
       );
   }, [inventory, searchTerm, showLowStockOnly]);
 
-  function formatCurrency(value: string) {
+  function formatCurrency(value: string | number) {
     const numericValue = Number(value);
 
     if (Number.isNaN(numericValue)) {
@@ -217,7 +217,7 @@ export default function OwnerInventoryPage() {
 
               <SummaryCard
                 label="Low Stock Products"
-                value={lowStockItems.length}
+                value={reorderLevelItems.length}
               />
 
               <SummaryCard
@@ -304,6 +304,7 @@ export default function OwnerInventoryPage() {
                           Low Stock Level
                         </TableHeading>
                         <TableHeading>Case Cost</TableHeading>
+                        <TableHeading>Selling Price</TableHeading>
                         <TableHeading>Status</TableHeading>
                         <TableHeading>Created</TableHeading>
                       </tr>
@@ -312,7 +313,7 @@ export default function OwnerInventoryPage() {
                     <tbody className="divide-y divide-slate-200">
                       {filteredInventory.map((item) => {
                         const isLowStock =
-                          item.quantityInStock <= item.lowStock;
+                          item.quantityInStock <= item.reorderLevel;
 
                         return (
                           <tr
@@ -343,18 +344,33 @@ export default function OwnerInventoryPage() {
 
                             <TableCell>
                               <p className="text-slate-700">
-                                {item.lowStock}
+                                {item.reorderLevel}
                               </p>
                             </TableCell>
 
                             <TableCell>
-                              <p className="font-medium text-slate-900">
-                                {formatCurrency(item.caseCost)}
-                              </p>
-                            </TableCell>
+  <p className="font-medium text-slate-900">
+    {formatCurrency(item.caseCost)}
+  </p>
+</TableCell>
 
-                            <TableCell>
-                              <span
+<TableCell>
+  <div>
+    <p className="font-semibold text-slate-950">
+      {formatCurrency(item.sellingPrice)}
+    </p>
+
+    <p className="mt-1 text-xs text-slate-500">
+      Margin{" "}
+      {formatCurrency(
+        Number(item.sellingPrice) - Number(item.caseCost),
+      )}
+    </p>
+  </div>
+</TableCell>
+
+<TableCell>
+  <span
                                 className={[
                                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
                                   isLowStock

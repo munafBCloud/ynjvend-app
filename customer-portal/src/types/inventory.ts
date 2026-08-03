@@ -1,12 +1,21 @@
+export type InventoryStatus =
+  | "active"
+  | "inactive"
+  | "archived";
+
 export type InventoryItem = {
+  companyId?: string;
   productId: string;
   productName: string;
   brand: string;
   quantityInStock: number;
-  lowStock: number;
-  caseCost: string;
+  reorderLevel: number;
+  caseCost: number;
+  sellingPrice: number;
+  status: InventoryStatus;
   availability?: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type InventoryResponse = {
@@ -18,8 +27,10 @@ export type CreateInventoryInput = {
   productName: string;
   brand: string;
   quantityInStock: number;
-  lowStock: number;
-  caseCost: string;
+  reorderLevel: number;
+  caseCost: number;
+  sellingPrice: number;
+  status: InventoryStatus;
 };
 
 export type CreateInventoryResponse = {

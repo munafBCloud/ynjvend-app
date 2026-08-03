@@ -1,0 +1,12 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "custom:companyId": "company-ynj-001"
+        }
+      }
+    }
+  },
+  "body": "{\"customerId\":\"test-customer-001\",\"businessName\":\"Test Market\",\"issueDate\":\"2026-07-31\",\"dueDate\":\"2026-08-30\",\"status\":\"Draft\",\"tax\":1.50,\"amountPaid\":0,\"notes\":\"Initial invoice Lambda test\",\"items\":[{\"productId\":\"test-product-001\",\"productName\":\"Test Product\",\"quantity\":2,\"unitPrice\":10.00}]}"
+}

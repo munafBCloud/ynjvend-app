@@ -1,0 +1,15 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "custom:companyId": "company-ynj-001"
+        }
+      }
+    }
+  },
+  "pathParameters": {
+    "invoiceId": "132bc0c7-e3b1-4fc5-9aa9-0f3c7627fec2"
+  },
+  "body": "{\"status\":\"Sent\",\"amountPaid\":5,\"notes\":\"Partial payment test\"}"
+}

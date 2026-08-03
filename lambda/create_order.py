@@ -27,6 +27,15 @@ MAX_ORDER_ITEMS = 100
 MAX_NOTES_LENGTH = 500
 MAX_QUANTITY = 1000
 
+def decimal_serializer(value):
+    if isinstance(value, Decimal):
+        if value % 1 == 0:
+            return int(value)
+        return float(value)
+
+    raise TypeError(
+        f"Object of type {value.__class__.__name__} is not JSON serializable"
+    )
 
 def api_response(status_code, body):
     return {
@@ -34,8 +43,36 @@ def api_response(status_code, body):
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(body)
+        "body": json.dumps(body, default=decimal_serializer)
     }
+
+
+def get_jwt_claims(event):
+    try:
+        return (
+            event["requestContext"]
+            ["authorizer"]
+            ["jwt"]
+            ["claims"]
+        )
+    except (KeyError, TypeError):
+        return {}
+
+
+def get_company_id(event):
+    claims = get_jwt_claims(event)
+
+    company_id = claims.get("custom:companyId")
+
+    if not isinstance(company_id, str):
+        return None
+
+    company_id = company_id.strip()
+
+    if not company_id:
+        return None
+
+    return company_id
 
 
 def validate_required_text(value, field_name, maximum_length):
@@ -96,27 +133,29 @@ def validate_quantity(value):
     return quantity
 
 
-def get_customer(customer_id):
+def get_customer(company_id, customer_id):
     response = customers_table.get_item(
         Key={
-            "customerId": customer_id
+            "companyId": company_id,
+            "customerId": customer_id,
         }
     )
 
     return response.get("Item")
 
 
-def get_inventory_product(product_id):
+def get_inventory_product(company_id, product_id):
     response = inventory_table.get_item(
         Key={
-            "productId": product_id
+            "companyId": company_id,
+            "productId": product_id,
         }
     )
 
     return response.get("Item")
 
 
-def validate_order_items(items):
+def validate_order_items(company_id, items):
     if not isinstance(items, list):
         raise ValueError("items must be an array")
 
@@ -176,7 +215,10 @@ def validate_order_items(items):
 
         quantity = validate_quantity(item["quantity"])
 
-        product = get_inventory_product(product_id)
+        product = get_inventory_product(
+            company_id,
+            product_id,
+        )
 
         if not product:
             raise LookupError(
@@ -187,8 +229,10 @@ def validate_order_items(items):
 
         if not isinstance(product_name, str) or not product_name.strip():
             logger.error(
-                "Inventory product %s has no valid productName",
+                "Inventory product %s for company %s "
+                "has no valid productName",
                 product_id,
+                company_id,
             )
 
             raise RuntimeError(
@@ -208,6 +252,24 @@ def validate_order_items(items):
 
 def lambda_handler(event, context):
     try:
+        company_id = get_company_id(event)
+
+        if not company_id:
+            logger.warning(
+                "Request rejected because custom:companyId "
+                "was missing from the JWT claims"
+            )
+
+            return api_response(
+                403,
+                {
+                    "message": (
+                        "Authenticated user is not assigned "
+                        "to a company"
+                    )
+                }
+            )
+
         raw_body = event.get("body")
 
         if not raw_body:
@@ -251,21 +313,20 @@ def lambda_handler(event, context):
                 }
             )
 
+        missing_fields = []
+
         if "customerId" not in body:
-            return api_response(
-                400,
-                {
-                    "message": "Missing required fields",
-                    "fields": ["customerId"],
-                }
-            )
+            missing_fields.append("customerId")
 
         if "items" not in body:
+            missing_fields.append("items")
+
+        if missing_fields:
             return api_response(
                 400,
                 {
                     "message": "Missing required fields",
-                    "fields": ["items"],
+                    "fields": missing_fields,
                 }
             )
 
@@ -277,7 +338,10 @@ def lambda_handler(event, context):
 
         notes = validate_notes(body.get("notes"))
 
-        customer = get_customer(customer_id)
+        customer = get_customer(
+            company_id,
+            customer_id,
+        )
 
         if not customer:
             return api_response(
@@ -296,8 +360,10 @@ def lambda_handler(event, context):
             or not business_name.strip()
         ):
             logger.error(
-                "Customer %s has no valid businessName",
+                "Customer %s for company %s has no valid "
+                "businessName",
                 customer_id,
+                company_id,
             )
 
             return api_response(
@@ -311,7 +377,8 @@ def lambda_handler(event, context):
 
         try:
             validated_items = validate_order_items(
-                body["items"]
+                company_id,
+                body["items"],
             )
         except LookupError as error:
             return api_response(
@@ -320,14 +387,21 @@ def lambda_handler(event, context):
             )
 
         timestamp = datetime.now(timezone.utc).isoformat()
+        order_id = str(uuid.uuid4())
 
         order = {
-            "orderId": str(uuid.uuid4()),
+            "companyId": company_id,
+            "orderId": order_id,
             "customerId": customer_id,
             "businessName": business_name.strip(),
             "status": "New",
             "items": validated_items,
             "notes": notes,
+            "subtotal": Decimal("0"),
+            "tax": Decimal("0"),
+            "discount": Decimal("0"),
+            "total": Decimal("0"),
+            "paymentStatus": "Unpaid",
             "createdAt": timestamp,
             "updatedAt": timestamp,
         }
@@ -335,14 +409,17 @@ def lambda_handler(event, context):
         orders_table.put_item(
             Item=order,
             ConditionExpression=(
+                "attribute_not_exists(companyId) AND "
                 "attribute_not_exists(orderId)"
             ),
         )
 
         logger.info(
-            "Created order %s for customer %s with %s items",
-            order["orderId"],
+            "Created order %s for customer %s in company %s "
+            "with %s items",
+            order_id,
             customer_id,
+            company_id,
             len(validated_items),
         )
 

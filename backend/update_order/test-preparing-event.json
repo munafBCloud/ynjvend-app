@@ -1,0 +1,15 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "custom:companyId": "company-ynj-001"
+        }
+      }
+    }
+  },
+  "pathParameters": {
+    "orderId": "d651b1a8-c57b-43d8-90b6-200cfabe104f"
+  },
+  "body": "{\"status\":\"Preparing\"}"
+}

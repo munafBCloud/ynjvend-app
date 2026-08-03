@@ -22,13 +22,13 @@ export async function apiRequest<T>(
 
   if (authenticated) {
     const session = await fetchAuthSession();
-    const accessToken = session.tokens?.accessToken?.toString();
+    const idToken = session.tokens?.idToken?.toString();
 
-    if (!accessToken) {
+    if (!idToken) {
       throw new Error("You must sign in to access this resource.");
     }
 
-    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+    requestHeaders.set("Authorization", `Bearer ${idToken}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {

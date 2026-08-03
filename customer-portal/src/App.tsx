@@ -4,6 +4,7 @@ import ProtectedRoute from "./auth/ProtectedRoute";
 
 import CustomerLayout from "./layouts/CustomerLayout";
 import OwnerLayout from "./layouts/OwnerLayout";
+import OwnerInvoicesPage from "./pages/owner/OwnerInvoicesPage";
 
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="customers" element={<OwnerCustomersPage />} />
         <Route path="requests" element={<OwnerRequestsPage />} />
         <Route path="orders" element={<OwnerOrdersPage />} />
+        <Route path="invoices" element={<OwnerInvoicesPage />} />
         <Route path="inventory" element={<OwnerInventoryPage />} />
       </Route>
 

@@ -1,0 +1,11 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "custom:companyId": "company-ynj-001"
+        }
+      }
+    }
+  }
+}
