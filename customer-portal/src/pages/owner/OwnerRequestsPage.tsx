@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
+import SummaryCard from "../../components/SummaryCard";
+
 import type {
   ProductRequest,
   RequestStatus,
@@ -9,6 +13,9 @@ import {
   getRequests,
   updateRequestStatus as updateRequestStatusApi,
 } from "../../services/requests";
+
+import { formatDate } from "../../utils/formatters";
+import { getRequestStatusClasses } from "../../utils/status";
 
 const STATUS_FILTERS = [
   "All",
@@ -168,37 +175,7 @@ export default function OwnerRequestsPage() {
     }
   }
 
-  function formatDate(dateValue: string) {
-    const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) {
-      return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-  }
-
-  function getStatusClasses(status: RequestStatus) {
-    if (status === "New") {
-      return "bg-blue-100 text-blue-800";
-    }
-
-    if (status === "In Progress") {
-      return "bg-amber-100 text-amber-800";
-    }
-
-    if (status === "Completed") {
-      return "bg-green-100 text-green-800";
-    }
-
-    return "bg-slate-100 text-slate-700";
-  }
 
   return (
     <section className="px-6 py-10">
@@ -227,31 +204,22 @@ export default function OwnerRequestsPage() {
         )}
 
         {updateError && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">
-              {updateError}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to update request"
+            message={updateError}
+            className="mt-6"
+          />
         )}
 
         {loading && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-slate-600">
-              Loading product requests...
-            </p>
-          </div>
+          <LoadingState message="Loading product requests..." />
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
-            <p className="font-semibold text-red-800">
-              Unable to load requests
-            </p>
-
-            <p className="mt-2 text-sm text-red-700">
-              {error}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to load requests"
+            message={error}
+          />
         )}
 
         {!loading && !error && (
@@ -418,7 +386,7 @@ export default function OwnerRequestsPage() {
                               <span
                                 className={[
                                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                  getStatusClasses(
+                                  getRequestStatusClasses(
                                     request.status
                                   ),
                                 ].join(" ")}
@@ -481,7 +449,8 @@ export default function OwnerRequestsPage() {
                             <TableCell>
                               <span className="whitespace-nowrap text-sm text-slate-600">
                                 {formatDate(
-                                  request.requestedAt
+                                  request.requestedAt,
+                                  "dateTime",
                                 )}
                               </span>
                             </TableCell>
@@ -497,28 +466,6 @@ export default function OwnerRequestsPage() {
         )}
       </div>
     </section>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: number;
-};
-
-function SummaryCard({
-  label,
-  value,
-}: SummaryCardProps) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-3 text-4xl font-bold text-slate-950">
-        {value}
-      </p>
-    </article>
   );
 }
 

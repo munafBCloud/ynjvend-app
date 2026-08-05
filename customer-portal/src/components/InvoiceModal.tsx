@@ -4,6 +4,8 @@ import { createInvoice } from "../services/invoices";
 import { getCustomers } from "../services/customers";
 import { getInventory } from "../services/inventory";
 
+import { formatCurrency } from "../utils/formatters";
+
 import type { Customer } from "../types/customer";
 import type { InventoryItem } from "../types/inventory";
 import type { Invoice } from "../types/invoice";
@@ -234,12 +236,6 @@ export default function InvoiceModal({
     }
   }
 
-  function formatCurrency(value: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value);
-  }
 
   if (!isOpen) {
     return null;

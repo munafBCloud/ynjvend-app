@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 import InvoiceModal from "../../components/InvoiceModal";
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
+import SummaryCard from "../../components/SummaryCard";
+
+import {
+  formatCurrency,
+  formatDate,
+} from "../../utils/formatters";
+import { getInvoiceStatusClasses } from "../../utils/status";
 import {
   getInvoices,
   updateInvoice,
@@ -109,26 +118,6 @@ export default function OwnerInvoicesPage() {
     [invoices],
   );
 
-  function formatDate(dateValue: string) {
-    const date = new Date(dateValue);
-
-    if (Number.isNaN(date.getTime())) {
-      return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  }
-
-  function formatCurrency(value: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value);
-  }
 
   async function handleInvoiceUpdate(
     invoiceId: string,
@@ -167,29 +156,6 @@ export default function OwnerInvoicesPage() {
     }
   }
 
-  function getStatusClasses(status: InvoiceStatus) {
-    if (status === "Draft") {
-      return "bg-slate-200 text-slate-700";
-    }
-
-    if (status === "Sent") {
-      return "bg-blue-100 text-blue-800";
-    }
-
-    if (status === "Partially Paid") {
-      return "bg-amber-100 text-amber-800";
-    }
-
-    if (status === "Paid") {
-      return "bg-green-100 text-green-800";
-    }
-
-    if (status === "Overdue") {
-      return "bg-red-100 text-red-800";
-    }
-
-    return "bg-slate-900 text-white";
-  }
 
   return (
     <section className="px-6 py-10">
@@ -231,63 +197,38 @@ export default function OwnerInvoicesPage() {
         )}
 
         {loading && (
-          <p className="mt-8 text-slate-600">
-            Loading invoices...
-          </p>
+          <LoadingState message="Loading invoices..." />
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-5">
-            <p className="font-semibold text-red-800">
-              Unable to complete invoice action
-            </p>
-
-            <p className="mt-1 text-red-700">{error}</p>
-          </div>
+          <ErrorMessage
+            title="Unable to complete invoice action"
+            message={error}
+          />
         )}
 
         {!loading && (
           <>
             <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
-                  Total Invoices
-                </p>
+              <SummaryCard
+                label="Total Invoices"
+                value={invoiceCounts.total}
+              />
 
-                <p className="mt-3 text-4xl font-bold text-slate-950">
-                  {invoiceCounts.total}
-                </p>
-              </article>
+              <SummaryCard
+                label="Outstanding"
+                value={invoiceCounts.outstanding}
+              />
 
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
-                  Outstanding
-                </p>
+              <SummaryCard
+                label="Paid"
+                value={invoiceCounts.paid}
+              />
 
-                <p className="mt-3 text-4xl font-bold text-slate-950">
-                  {invoiceCounts.outstanding}
-                </p>
-              </article>
-
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
-                  Paid
-                </p>
-
-                <p className="mt-3 text-4xl font-bold text-slate-950">
-                  {invoiceCounts.paid}
-                </p>
-              </article>
-
-              <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold text-slate-500">
-                  Overdue
-                </p>
-
-                <p className="mt-3 text-4xl font-bold text-slate-950">
-                  {invoiceCounts.overdue}
-                </p>
-              </article>
+              <SummaryCard
+                label="Overdue"
+                value={invoiceCounts.overdue}
+              />
             </div>
 
             <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -410,7 +351,7 @@ export default function OwnerInvoicesPage() {
                           <span
                             className={[
                               "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-                              getStatusClasses(invoice.status),
+                              getInvoiceStatusClasses(invoice.status),
                             ].join(" ")}
                           >
                             {invoice.status}

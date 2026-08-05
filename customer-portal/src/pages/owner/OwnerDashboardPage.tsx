@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
+import SummaryCard from "../../components/SummaryCard";
 import { apiRequest } from "../../services/api";
+import { formatDate } from "../../utils/formatters";
+import { getRequestStatusClasses } from "../../utils/status";
 
 type Customer = {
   customerId: string;
@@ -145,37 +151,7 @@ export default function OwnerDashboardPage() {
     },
   ];
 
-  function formatDate(dateValue: string) {
-    const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) {
-      return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-  }
-
-  function getStatusClasses(status: string) {
-    if (status === "New") {
-      return "bg-blue-100 text-blue-800";
-    }
-
-    if (status === "In Progress") {
-      return "bg-amber-100 text-amber-800";
-    }
-
-    if (status === "Completed") {
-      return "bg-green-100 text-green-800";
-    }
-
-    return "bg-slate-100 text-slate-700";
-  }
 
   return (
     <section className="px-6 py-10">
@@ -193,41 +169,26 @@ export default function OwnerDashboardPage() {
         </p>
 
         {loading && (
-          <p className="mt-8 text-slate-600">
-            Loading dashboard data...
-          </p>
+          <LoadingState message="Loading dashboard data..." />
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-5">
-            <p className="font-semibold text-red-700">
-              Unable to load dashboard
-            </p>
-
-            <p className="mt-1 text-red-700">{error}</p>
-          </div>
+          <ErrorMessage
+            title="Unable to load dashboard"
+            message={error}
+          />
         )}
 
         {!loading && !error && (
           <>
             <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
               {dashboardCards.map((card) => (
-                <article
+                <SummaryCard
                   key={card.label}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-                >
-                  <p className="text-sm font-semibold text-slate-500">
-                    {card.label}
-                  </p>
-
-                  <p className="mt-3 text-4xl font-bold text-slate-950">
-                    {card.value}
-                  </p>
-
-                  <p className="mt-3 text-sm text-slate-500">
-                    {card.description}
-                  </p>
-                </article>
+                  label={card.label}
+                  value={card.value}
+                  description={card.description}
+                />
               ))}
             </div>
 
@@ -268,7 +229,7 @@ export default function OwnerDashboardPage() {
 
                       <div>
                         <p className="text-sm text-slate-500">
-                          {formatDate(request.requestedAt)}
+                          {formatDate(request.requestedAt, "dateTime")}
                         </p>
 
                         <p className="mt-1 break-all text-xs text-slate-400">
@@ -279,7 +240,7 @@ export default function OwnerDashboardPage() {
                       <span
                         className={[
                           "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-                          getStatusClasses(request.status),
+                          getRequestStatusClasses(request.status),
                         ].join(" ")}
                       >
                         {request.status}

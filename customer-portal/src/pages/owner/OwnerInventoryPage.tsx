@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
 import InventoryModal from "../../components/InventoryModal";
+import SummaryCard from "../../components/SummaryCard";
 
 import {
   createInventory,
@@ -11,6 +14,11 @@ import type {
   CreateInventoryInput,
   InventoryItem,
 } from "../../types/inventory";
+
+import {
+  formatCurrency,
+  formatDate,
+} from "../../utils/formatters";
 
 export default function OwnerInventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -40,7 +48,7 @@ export default function OwnerInventoryPage() {
         setError(
           error instanceof Error
             ? error.message
-            : "Unable to load inventory."
+            : "Unable to load inventory.",
         );
       } finally {
         setLoading(false);
@@ -51,7 +59,7 @@ export default function OwnerInventoryPage() {
   }, []);
 
   async function handleCreateInventory(
-    input: CreateInventoryInput
+    input: CreateInventoryInput,
   ) {
     try {
       setInventoryActionError("");
@@ -78,22 +86,25 @@ export default function OwnerInventoryPage() {
   const reorderLevelItems = useMemo(
     () =>
       inventory.filter(
-        (item) => item.quantityInStock <= item.reorderLevel
+        (item) =>
+          item.quantityInStock <= item.reorderLevel,
       ),
-    [inventory]
+    [inventory],
   );
 
   const totalCases = useMemo(
     () =>
       inventory.reduce(
-        (total, item) => total + item.quantityInStock,
-        0
+        (total, item) =>
+          total + item.quantityInStock,
+        0,
       ),
-    [inventory]
+    [inventory],
   );
 
   const filteredInventory = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch =
+      searchTerm.trim().toLowerCase();
 
     return [...inventory]
       .filter((item) => {
@@ -102,8 +113,12 @@ export default function OwnerInventoryPage() {
           item.productName
             .toLowerCase()
             .includes(normalizedSearch) ||
-          item.brand.toLowerCase().includes(normalizedSearch) ||
-          item.productId.toLowerCase().includes(normalizedSearch);
+          item.brand
+            .toLowerCase()
+            .includes(normalizedSearch) ||
+          item.productId
+            .toLowerCase()
+            .includes(normalizedSearch);
 
         const matchesLowStock =
           !showLowStockOnly ||
@@ -112,36 +127,15 @@ export default function OwnerInventoryPage() {
         return matchesSearch && matchesLowStock;
       })
       .sort((first, second) =>
-        first.productName.localeCompare(second.productName)
+        first.productName.localeCompare(
+          second.productName,
+        ),
       );
-  }, [inventory, searchTerm, showLowStockOnly]);
-
-  function formatCurrency(value: string | number) {
-    const numericValue = Number(value);
-
-    if (Number.isNaN(numericValue)) {
-      return value || "Not set";
-    }
-
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(numericValue);
-  }
-
-  function formatDate(value: string) {
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
-  }
+  }, [
+    inventory,
+    searchTerm,
+    showLowStockOnly,
+  ]);
 
   return (
     <section className="px-6 py-10">
@@ -157,8 +151,8 @@ export default function OwnerInventoryPage() {
             </h2>
 
             <p className="mt-3 text-slate-600">
-              Review stock levels, product costs, and items that
-              may need to be reordered.
+              Review stock levels, product costs, and items
+              that may need to be reordered.
             </p>
           </div>
 
@@ -175,31 +169,22 @@ export default function OwnerInventoryPage() {
         </div>
 
         {inventoryActionError && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">
-              {inventoryActionError}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to complete inventory action"
+            message={inventoryActionError}
+            className="mt-6"
+          />
         )}
 
         {loading && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-slate-600">
-              Loading inventory...
-            </p>
-          </div>
+          <LoadingState message="Loading inventory..." />
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
-            <p className="font-semibold text-red-800">
-              Unable to load inventory
-            </p>
-
-            <p className="mt-2 text-sm text-red-700">
-              {error}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to load inventory"
+            message={error}
+          />
         )}
 
         {!loading && !error && (
@@ -241,7 +226,9 @@ export default function OwnerInventoryPage() {
                     type="search"
                     value={searchTerm}
                     onChange={(event) =>
-                      setSearchTerm(event.target.value)
+                      setSearchTerm(
+                        event.target.value,
+                      )
                     }
                     placeholder="Search product, brand, or product ID"
                     className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100"
@@ -252,7 +239,8 @@ export default function OwnerInventoryPage() {
                   type="button"
                   onClick={() =>
                     setShowLowStockOnly(
-                      (currentValue) => !currentValue
+                      (currentValue) =>
+                        !currentValue,
                     )
                   }
                   className={[
@@ -288,8 +276,8 @@ export default function OwnerInventoryPage() {
                   </p>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Try changing the search term or low-stock
-                    filter.
+                    Try changing the search term or
+                    low-stock filter.
                   </p>
                 </div>
               ) : (
@@ -297,23 +285,45 @@ export default function OwnerInventoryPage() {
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
                       <tr>
-                        <TableHeading>Product</TableHeading>
-                        <TableHeading>Brand</TableHeading>
-                        <TableHeading>In Stock</TableHeading>
+                        <TableHeading>
+                          Product
+                        </TableHeading>
+
+                        <TableHeading>
+                          Brand
+                        </TableHeading>
+
+                        <TableHeading>
+                          In Stock
+                        </TableHeading>
+
                         <TableHeading>
                           Low Stock Level
                         </TableHeading>
-                        <TableHeading>Case Cost</TableHeading>
-                        <TableHeading>Selling Price</TableHeading>
-                        <TableHeading>Status</TableHeading>
-                        <TableHeading>Created</TableHeading>
+
+                        <TableHeading>
+                          Case Cost
+                        </TableHeading>
+
+                        <TableHeading>
+                          Selling Price
+                        </TableHeading>
+
+                        <TableHeading>
+                          Status
+                        </TableHeading>
+
+                        <TableHeading>
+                          Created
+                        </TableHeading>
                       </tr>
                     </thead>
 
                     <tbody className="divide-y divide-slate-200">
                       {filteredInventory.map((item) => {
                         const isLowStock =
-                          item.quantityInStock <= item.reorderLevel;
+                          item.quantityInStock <=
+                          item.reorderLevel;
 
                         return (
                           <tr
@@ -349,28 +359,37 @@ export default function OwnerInventoryPage() {
                             </TableCell>
 
                             <TableCell>
-  <p className="font-medium text-slate-900">
-    {formatCurrency(item.caseCost)}
-  </p>
-</TableCell>
+                              <p className="font-medium text-slate-900">
+                                {formatCurrency(
+                                  item.caseCost,
+                                )}
+                              </p>
+                            </TableCell>
 
-<TableCell>
-  <div>
-    <p className="font-semibold text-slate-950">
-      {formatCurrency(item.sellingPrice)}
-    </p>
+                            <TableCell>
+                              <div>
+                                <p className="font-semibold text-slate-950">
+                                  {formatCurrency(
+                                    item.sellingPrice,
+                                  )}
+                                </p>
 
-    <p className="mt-1 text-xs text-slate-500">
-      Margin{" "}
-      {formatCurrency(
-        Number(item.sellingPrice) - Number(item.caseCost),
-      )}
-    </p>
-  </div>
-</TableCell>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  Margin{" "}
+                                  {formatCurrency(
+                                    Number(
+                                      item.sellingPrice,
+                                    ) -
+                                      Number(
+                                        item.caseCost,
+                                      ),
+                                  )}
+                                </p>
+                              </div>
+                            </TableCell>
 
-<TableCell>
-  <span
+                            <TableCell>
+                              <span
                                 className={[
                                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
                                   isLowStock
@@ -386,7 +405,9 @@ export default function OwnerInventoryPage() {
 
                             <TableCell>
                               <p className="whitespace-nowrap text-sm text-slate-600">
-                                {formatDate(item.createdAt)}
+                                {formatDate(
+                                  item.createdAt,
+                                )}
                               </p>
                             </TableCell>
                           </tr>
@@ -403,32 +424,12 @@ export default function OwnerInventoryPage() {
 
       <InventoryModal
         open={isInventoryModalOpen}
-        onClose={() => setIsInventoryModalOpen(false)}
+        onClose={() =>
+          setIsInventoryModalOpen(false)
+        }
         onSubmit={handleCreateInventory}
       />
     </section>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: number;
-};
-
-function SummaryCard({
-  label,
-  value,
-}: SummaryCardProps) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-3 text-4xl font-bold text-slate-950">
-        {value}
-      </p>
-    </article>
   );
 }
 

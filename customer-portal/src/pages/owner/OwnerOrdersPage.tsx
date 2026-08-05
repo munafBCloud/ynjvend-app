@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
+import SummaryCard from "../../components/SummaryCard";
+
 import {
   createOrder,
   getOrders,
@@ -7,6 +11,9 @@ import {
 } from "../../services/orders";
 import { getCustomers } from "../../services/customers";
 import { getInventory } from "../../services/inventory";
+
+import { formatDate } from "../../utils/formatters";
+import { getOrderStatusClasses } from "../../utils/status";
 
 import type { Customer } from "../../types/customer";
 import type { InventoryItem } from "../../types/inventory";
@@ -288,21 +295,6 @@ export default function OwnerOrdersPage() {
     }
   }
 
-  function formatDate(dateValue: string) {
-    const date = new Date(dateValue);
-
-    if (Number.isNaN(date.getTime())) {
-      return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-  }
 
   function getTotalQuantity(order: Order) {
     return order.items.reduce(
@@ -311,21 +303,6 @@ export default function OwnerOrdersPage() {
     );
   }
 
-  function getStatusClasses(status: OrderStatus) {
-    if (status === "New") {
-      return "bg-blue-100 text-blue-800";
-    }
-
-    if (status === "Preparing") {
-      return "bg-amber-100 text-amber-800";
-    }
-
-    if (status === "Completed") {
-      return "bg-green-100 text-green-800";
-    }
-
-    return "bg-slate-200 text-slate-700";
-  }
 
   return (
     <section className="px-6 py-10">
@@ -365,11 +342,11 @@ export default function OwnerOrdersPage() {
         )}
 
         {updateError && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">
-              {updateError}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to update order"
+            message={updateError}
+            className="mt-6"
+          />
         )}
 
         {showCreateOrderForm && (
@@ -388,11 +365,11 @@ export default function OwnerOrdersPage() {
             </div>
 
             {createOrderError && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                <p className="font-semibold text-red-800">
-                  {createOrderError}
-                </p>
-              </div>
+              <ErrorMessage
+                title="Unable to create order"
+                message={createOrderError}
+                className="mt-5"
+              />
             )}
 
             <div className="mt-6">
@@ -575,21 +552,14 @@ export default function OwnerOrdersPage() {
         )}
 
         {loading && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-slate-600">Loading orders...</p>
-          </div>
+          <LoadingState message="Loading orders..." />
         )}
 
         {!loading && error && (
-          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
-            <p className="font-semibold text-red-800">
-              Unable to load orders
-            </p>
-
-            <p className="mt-2 text-sm text-red-700">
-              {error}
-            </p>
-          </div>
+          <ErrorMessage
+            title="Unable to load orders"
+            message={error}
+          />
         )}
 
         {!loading && !error && (
@@ -739,14 +709,14 @@ export default function OwnerOrdersPage() {
                             <span
                               className={[
                                 "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                getStatusClasses(order.status),
+                                getOrderStatusClasses(order.status),
                               ].join(" ")}
                             >
                               {order.status}
                             </span>
 
                             <p className="mt-2 whitespace-nowrap text-xs text-slate-500">
-                              {formatDate(order.createdAt)}
+                              {formatDate(order.createdAt, "dateTime")}
                             </p>
                           </div>
 
@@ -880,7 +850,7 @@ export default function OwnerOrdersPage() {
                                   </p>
 
                                   <p className="mt-1 text-sm text-slate-700">
-                                    {formatDate(order.updatedAt)}
+                                    {formatDate(order.updatedAt, "dateTime")}
                                   </p>
                                 </div>
                               </div>
@@ -897,27 +867,5 @@ export default function OwnerOrdersPage() {
         )}
       </div>
     </section>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: number;
-};
-
-function SummaryCard({
-  label,
-  value,
-}: SummaryCardProps) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-3 text-4xl font-bold text-slate-950">
-        {value}
-      </p>
-    </article>
   );
 }
