@@ -5,6 +5,7 @@ import { useAuth } from "../auth/useAuth";
 
 const ownerNavigation = [
   { label: "Dashboard", path: "/owner" },
+  { label: "Analytics", path: "/owner/analytics" },
   { label: "Orders", path: "/owner/orders" },
   { label: "Invoices", path: "/owner/invoices" },
   { label: "Customers", path: "/owner/customers" },

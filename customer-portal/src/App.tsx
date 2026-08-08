@@ -14,6 +14,7 @@ import ProductsPage from "./pages/ProductsPage";
 import RequestPage from "./pages/RequestPage";
 import LoginPage from "./pages/auth/LoginPage";
 
+import OwnerAnalyticsPage from "./pages/owner/OwnerAnalyticsPage";
 import OwnerCustomersPage from "./pages/owner/OwnerCustomersPage";
 import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import OwnerInventoryPage from "./pages/owner/OwnerInventoryPage";
@@ -42,6 +43,7 @@ export default function App() {
         }
       >
         <Route index element={<OwnerDashboardPage />} />
+        <Route path="analytics" element={<OwnerAnalyticsPage />} />
         <Route path="customers" element={<OwnerCustomersPage />} />
         <Route path="requests" element={<OwnerRequestsPage />} />
         <Route path="orders" element={<OwnerOrdersPage />} />
