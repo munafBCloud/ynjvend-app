@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useLocation } from "react-router";
+import {
+  Link,
+  Navigate,
+  useLocation,
+} from "react-router";
 
 import { useAuth } from "../../auth/useAuth";
 
@@ -7,9 +11,17 @@ export default function LoginPage() {
   const { signIn, isAuthenticated } = useAuth();
   const location = useLocation();
 
+  const locationState = location.state as {
+    from?: { pathname: string };
+    passwordResetSuccess?: boolean;
+  } | null;
+
   const from =
-    (location.state as { from?: { pathname: string } })?.from?.pathname ??
+    locationState?.from?.pathname ??
     "/owner";
+
+  const passwordResetSuccess =
+    locationState?.passwordResetSuccess === true;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +65,12 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {passwordResetSuccess && (
+          <div className="mb-5 rounded-lg bg-green-100 p-3 text-sm text-green-800">
+            Password reset successfully. You can now sign in.
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="space-y-5"
@@ -74,9 +92,18 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">
-              Password
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <label className="block text-sm font-semibold">
+                Password
+              </label>
+
+              <Link
+                to="/forgot-password"
+                className="text-sm font-semibold text-red-700 hover:text-red-800"
+              >
+                Forgot password?
+              </Link>
+            </div>
 
             <input
               type="password"
@@ -84,6 +111,7 @@ export default function LoginPage() {
               onChange={(event) =>
                 setPassword(event.target.value)
               }
+              autoComplete="current-password"
               className="w-full rounded-lg border p-3"
               required
             />

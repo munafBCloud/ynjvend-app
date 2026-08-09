@@ -8,7 +8,9 @@ import {
 } from "react";
 
 import {
+  confirmResetPassword as amplifyConfirmResetPassword,
   getCurrentUser,
+  resetPassword as amplifyResetPassword,
   signIn as amplifySignIn,
   signOut as amplifySignOut,
 } from "aws-amplify/auth";
@@ -25,6 +27,12 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  confirmPasswordReset: (
+    email: string,
+    code: string,
+    newPassword: string,
+  ) => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
@@ -89,6 +97,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
   }, []);
 
+  const requestPasswordReset = useCallback(
+    async (email: string) => {
+      await amplifyResetPassword({
+        username: email,
+      });
+    },
+    [],
+  );
+
+  const confirmPasswordReset = useCallback(
+    async (
+      email: string,
+      code: string,
+      newPassword: string,
+    ) => {
+      await amplifyConfirmResetPassword({
+        username: email,
+        confirmationCode: code,
+        newPassword,
+      });
+    },
+    [],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -96,9 +128,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: user !== null,
       signIn,
       signOut,
+      requestPasswordReset,
+      confirmPasswordReset,
       refreshUser,
     }),
-    [user, loading, signIn, signOut, refreshUser],
+    [
+      user,
+      loading,
+      signIn,
+      signOut,
+      requestPasswordReset,
+      confirmPasswordReset,
+      refreshUser,
+    ],
   );
 
   return (

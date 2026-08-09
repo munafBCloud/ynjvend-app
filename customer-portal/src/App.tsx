@@ -12,7 +12,9 @@ import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProductsPage from "./pages/ProductsPage";
 import RequestPage from "./pages/RequestPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import LoginPage from "./pages/auth/LoginPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import OwnerAnalyticsPage from "./pages/owner/OwnerAnalyticsPage";
 import OwnerCustomersPage from "./pages/owner/OwnerCustomersPage";
@@ -33,6 +35,14 @@ export default function App() {
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/forgot-password"
+        element={<ForgotPasswordPage />}
+      />
+      <Route
+        path="/reset-password"
+        element={<ResetPasswordPage />}
+      />
 
       <Route
         path="/owner"
