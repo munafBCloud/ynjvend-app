@@ -1,23 +1,48 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import {
+  NavLink,
+  Outlet,
+  useNavigate,
+} from "react-router";
 
 import { useAuth } from "../auth/useAuth";
 
 const ownerNavigation = [
-  { label: "Dashboard", path: "/owner" },
-  { label: "Analytics", path: "/owner/analytics" },
-  { label: "Orders", path: "/owner/orders" },
-  { label: "Invoices", path: "/owner/invoices" },
-  { label: "Customers", path: "/owner/customers" },
-  { label: "Inventory", path: "/owner/inventory" },
+  {
+    label: "Dashboard",
+    path: "/owner",
+  },
+  {
+    label: "Analytics",
+    path: "/owner/analytics",
+  },
+  {
+    label: "Orders",
+    path: "/owner/orders",
+  },
+  {
+    label: "Invoices",
+    path: "/owner/invoices",
+  },
+  {
+    label: "Customers",
+    path: "/owner/customers",
+  },
+  {
+    label: "Inventory",
+    path: "/owner/inventory",
+  },
 ];
 
 export default function OwnerLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [signingOut, setSigningOut] = useState(false);
-  const [signOutError, setSignOutError] = useState("");
+  const [signingOut, setSigningOut] =
+    useState(false);
+
+  const [signOutError, setSignOutError] =
+    useState("");
 
   async function handleSignOut() {
     try {
@@ -30,7 +55,10 @@ export default function OwnerLayout() {
         replace: true,
       });
     } catch (error) {
-      console.error("Unable to sign out:", error);
+      console.error(
+        "Unable to sign out:",
+        error,
+      );
 
       setSignOutError(
         error instanceof Error
@@ -47,14 +75,22 @@ export default function OwnerLayout() {
       <div className="flex min-h-screen">
         <aside className="hidden w-64 flex-col bg-slate-950 text-white md:flex">
           <div className="border-b border-slate-800 px-6 py-6">
-            <NavLink to="/owner" className="flex items-center gap-3">
+            <NavLink
+              to="/owner"
+              className="flex items-center gap-3"
+            >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-700 font-bold">
                 YNJ
               </div>
 
               <div>
-                <p className="font-bold">YNJ Vend</p>
-                <p className="text-xs text-slate-400">Owner Portal</p>
+                <p className="font-bold">
+                  YNJ Vend
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  Owner Portal
+                </p>
               </div>
             </NavLink>
           </div>
@@ -86,29 +122,30 @@ export default function OwnerLayout() {
               </p>
 
               <p className="mt-1 break-all text-sm font-semibold text-white">
-                {user?.email ?? user?.username ?? "Authenticated user"}
+                {user?.email ??
+                  user?.username ??
+                  "Authenticated user"}
               </p>
             </div>
 
             {signOutError && (
-              <p className="mb-3 text-sm text-red-300">{signOutError}</p>
+              <p className="mb-3 text-sm text-red-300">
+                {signOutError}
+              </p>
             )}
 
             <button
               type="button"
-              onClick={() => void handleSignOut()}
+              onClick={() =>
+                void handleSignOut()
+              }
               disabled={signingOut}
-              className="mb-2 w-full rounded-lg bg-red-700 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg bg-red-700 px-4 py-3 text-left text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {signingOut ? "Signing Out..." : "Sign Out"}
+              {signingOut
+                ? "Signing Out..."
+                : "Sign Out"}
             </button>
-
-            <NavLink
-              to="/"
-              className="block rounded-lg px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
-            >
-              Return to Customer Site
-            </NavLink>
           </div>
         </aside>
 
@@ -125,25 +162,23 @@ export default function OwnerLayout() {
                 </h1>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  {user?.email ?? user?.username}
+                  {user?.email ??
+                    user?.username}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 md:hidden">
-                <NavLink
-                  to="/"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                >
-                  Customer Site
-                </NavLink>
-
+              <div className="md:hidden">
                 <button
                   type="button"
-                  onClick={() => void handleSignOut()}
+                  onClick={() =>
+                    void handleSignOut()
+                  }
                   disabled={signingOut}
                   className="rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
                 >
-                  {signingOut ? "Signing Out..." : "Sign Out"}
+                  {signingOut
+                    ? "Signing Out..."
+                    : "Sign Out"}
                 </button>
               </div>
             </div>

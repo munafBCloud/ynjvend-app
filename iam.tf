@@ -27,12 +27,19 @@ resource "aws_iam_role_policy" "lambda_dynamodb_access" {
         Action = [
           "dynamodb:PutItem",
           "dynamodb:GetItem",
+          "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
           "dynamodb:TransactWriteItems"
         ]
         Resource = [
+          aws_dynamodb_table.companies.arn,
+          aws_dynamodb_table.customers_v2.arn,
+          aws_dynamodb_table.inventory_v2.arn,
+          aws_dynamodb_table.orders_v2.arn,
+          aws_dynamodb_table.invoices.arn,
+
           aws_dynamodb_table.inventory.arn,
           aws_dynamodb_table.customers.arn,
           aws_dynamodb_table.requests.arn,
@@ -47,4 +54,3 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
-

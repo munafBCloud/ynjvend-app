@@ -28,6 +28,32 @@ resource "aws_cognito_user_pool" "ynj_users" {
     attributes_require_verification_before_update = ["email"]
   }
 
+  schema {
+    name                     = "companyId"
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    required                 = false
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 128
+    }
+  }
+
+  schema {
+    name                     = "role"
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    required                 = false
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 32
+    }
+  }
+
   tags = {
     Project     = var.project_name
     Environment = var.environment

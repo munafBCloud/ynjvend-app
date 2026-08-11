@@ -89,34 +89,6 @@ resource "aws_lambda_permission" "allow_get_inventory_api_gateway" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
-
-# ---------------------------------------------------------
-# GET PUBLIC INVENTORY
-# New customer-safe route: GET /public/inventory
-# ---------------------------------------------------------
-
-resource "aws_apigatewayv2_integration" "get_public_inventory_integration" {
-  api_id                 = aws_apigatewayv2_api.ynj_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.get_public_inventory.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "get_public_inventory" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "GET /public/inventory"
-  target    = "integrations/${aws_apigatewayv2_integration.get_public_inventory_integration.id}"
-}
-
-resource "aws_lambda_permission" "allow_get_public_inventory_api_gateway" {
-  statement_id  = "AllowGetPublicInventoryAPI"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_public_inventory.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
-}
-
-
 # ---------------------------------------------------------
 # UPDATE INVENTORY
 # Existing administrative route: PUT /inventory
@@ -232,91 +204,6 @@ resource "aws_lambda_permission" "allow_api_get_customers" {
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
 
-
-# ---------------------------------------------------------
-# CREATE PRODUCT REQUEST
-# Existing public customer route: POST /requests
-# ---------------------------------------------------------
-
-resource "aws_apigatewayv2_integration" "create_request_integration" {
-  api_id                 = aws_apigatewayv2_api.ynj_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.create_request.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "create_request_route" {
-  api_id    = aws_apigatewayv2_api.ynj_api.id
-  route_key = "POST /requests"
-  target    = "integrations/${aws_apigatewayv2_integration.create_request_integration.id}"
-}
-
-resource "aws_lambda_permission" "allow_api_create_request" {
-  statement_id  = "AllowExecutionFromAPICreateRequest"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.create_request.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
-}
-
-
-# ---------------------------------------------------------
-# GET PRODUCT REQUESTS
-# Existing owner-dashboard route: GET /requests
-# ---------------------------------------------------------
-
-resource "aws_apigatewayv2_integration" "get_requests_integration" {
-  api_id                 = aws_apigatewayv2_api.ynj_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.get_requests.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "get_requests_route" {
-  api_id             = aws_apigatewayv2_api.ynj_api.id
-  route_key          = "GET /requests"
-  authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
-  target             = "integrations/${aws_apigatewayv2_integration.get_requests_integration.id}"
-}
-
-resource "aws_lambda_permission" "allow_api_get_requests" {
-  statement_id  = "AllowExecutionFromAPIGetRequests"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_requests.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
-}
-
-
-# ---------------------------------------------------------
-# UPDATE PRODUCT REQUEST
-# Existing owner-dashboard route: PUT /requests
-# ---------------------------------------------------------
-
-resource "aws_apigatewayv2_integration" "update_request_integration" {
-  api_id                 = aws_apigatewayv2_api.ynj_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.update_request.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "update_request_route" {
-  api_id             = aws_apigatewayv2_api.ynj_api.id
-  route_key          = "PUT /requests"
-  authorization_type = "JWT"
-  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
-  target             = "integrations/${aws_apigatewayv2_integration.update_request_integration.id}"
-}
-
-resource "aws_lambda_permission" "allow_api_update_request" {
-  statement_id  = "AllowExecutionFromAPIUpdateRequest"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.update_request.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
-}
-
 # ---------------------------------------------------------
 # CREATE ORDER
 # Owner-created distribution order: POST /orders
@@ -409,4 +296,187 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.ynj_api.id
   name        = "$default"
   auto_deploy = true
+}
+
+# ---------------------------------------------------------
+# UPDATE CUSTOMER
+# Existing authenticated route: PUT /customers
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "update_customer_integration" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.update_customer.arn
+
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 30000
+}
+
+resource "aws_apigatewayv2_route" "update_customer_route" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "PUT /customers"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.update_customer_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_update_customer" {
+  statement_id  = "allow-apigateway-put-customers"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_customer.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/PUT/customers"
+}
+
+
+# ---------------------------------------------------------
+# DELETE CUSTOMER
+# Existing authenticated route: DELETE /customers
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "delete_customer_integration" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.delete_customer.arn
+
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 30000
+}
+
+resource "aws_apigatewayv2_route" "delete_customer_route" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "DELETE /customers"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.delete_customer_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_delete_customer" {
+  statement_id  = "allow-apigateway-delete-customers"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_customer.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/DELETE/customers"
+}
+
+# ---------------------------------------------------------
+# CREATE INVOICE
+# POST /invoices
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "create_invoice_integration" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.create_invoice.invoke_arn
+
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 30000
+}
+
+resource "aws_apigatewayv2_route" "create_invoice_route" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "POST /invoices"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.create_invoice_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_create_invoice" {
+  statement_id  = "apigateway-create-invoice"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.create_invoice.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/POST/invoices"
+}
+
+
+# ---------------------------------------------------------
+# GET INVOICES
+# GET /invoices
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "get_invoices_integration" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.get_invoices.invoke_arn
+
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 30000
+}
+
+resource "aws_apigatewayv2_route" "get_invoices_route" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "GET /invoices"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.get_invoices_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_get_invoices" {
+  statement_id  = "apigateway-get-invoices"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_invoices.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/invoices"
+}
+
+
+# ---------------------------------------------------------
+# UPDATE INVOICE
+# PUT /invoices/{invoiceId}
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "update_invoice_integration" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.update_invoice.invoke_arn
+
+  payload_format_version = "2.0"
+  timeout_milliseconds   = 30000
+}
+
+resource "aws_apigatewayv2_route" "update_invoice_route" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "PUT /invoices/{invoiceId}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.update_invoice_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_api_update_invoice" {
+  statement_id  = "apigateway-update-invoice"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_invoice.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/PUT/invoices/*"
 }

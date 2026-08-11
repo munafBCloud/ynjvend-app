@@ -21,8 +21,6 @@ inventory_table_name = os.environ["INVENTORY_TABLE"]
 orders_table = dynamodb.Table(orders_table_name)
 inventory_table = dynamodb.Table(inventory_table_name)
 
-ALLOWED_FIELDS = {"status"}
-
 VALID_TRANSITIONS = {
     "New": {"Preparing", "Cancelled"},
     "Preparing": {"Completed", "Cancelled"},
@@ -34,10 +32,7 @@ VALID_TRANSITIONS = {
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            if obj % 1 == 0:
-                return int(obj)
-
-            return float(obj)
+            return int(obj) if obj % 1 == 0 else float(obj)
 
         return super().default(obj)
 
@@ -46,12 +41,9 @@ def api_response(status_code, body):
     return {
         "statusCode": status_code,
         "headers": {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
-        "body": json.dumps(
-            body,
-            cls=DecimalEncoder,
-        ),
+        "body": json.dumps(body, cls=DecimalEncoder),
     }
 
 
@@ -62,43 +54,61 @@ def serialize_values(values):
     }
 
 
+def get_company_id(event):
+    claims = (
+        event.get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+
+    company_id = claims.get("custom:companyId")
+
+    if not isinstance(company_id, str) or not company_id.strip():
+        raise PermissionError(
+            "Authenticated user is missing company access."
+        )
+
+    return company_id.strip()
+
+
 def get_order_id(event):
     path_parameters = event.get("pathParameters") or {}
     order_id = path_parameters.get("orderId")
 
     if not isinstance(order_id, str) or not order_id.strip():
-        raise ValueError("orderId is required")
+        raise ValueError("orderId is required.")
 
     order_id = order_id.strip()
 
     if len(order_id) > 100:
         raise ValueError(
-            "orderId must be no more than 100 characters"
+            "orderId must be no more than 100 characters."
         )
 
     return order_id
 
 
-def parse_request_body(event):
+def parse_status(event):
     raw_body = event.get("body")
 
     if not raw_body:
-        raise ValueError("Request body is required")
+        raise ValueError("Request body is required.")
 
     try:
         body = json.loads(raw_body)
     except json.JSONDecodeError as error:
         raise ValueError(
-            "Request body must contain valid JSON"
+            "Request body must contain valid JSON."
         ) from error
 
     if not isinstance(body, dict):
         raise ValueError(
-            "Request body must be a JSON object"
+            "Request body must be a JSON object."
         )
 
     unexpected_fields = sorted(
-        set(body.keys()) - ALLOWED_FIELDS
+        set(body.keys()) - {"status"}
     )
 
     if unexpected_fields:
@@ -107,22 +117,17 @@ def parse_request_body(event):
             + ", ".join(unexpected_fields)
         )
 
-    if "status" not in body:
-        raise ValueError("status is required")
+    status = body.get("status")
 
-    return body
+    if not isinstance(status, str):
+        raise ValueError("status must be a string.")
 
-
-def validate_status(value):
-    if not isinstance(value, str):
-        raise ValueError("status must be a string")
-
-    status = value.strip()
+    status = status.strip()
 
     if status not in VALID_TRANSITIONS:
         raise ValueError(
             "status must be New, Preparing, "
-            "Completed, or Cancelled"
+            "Completed, or Cancelled."
         )
 
     return status
@@ -133,7 +138,7 @@ def normalize_order_items(existing_order):
 
     if not isinstance(raw_items, list) or not raw_items:
         raise ValueError(
-            "Order contains no valid inventory items"
+            "Order contains no valid inventory items."
         )
 
     normalized_items = {}
@@ -141,11 +146,14 @@ def normalize_order_items(existing_order):
     for raw_item in raw_items:
         if not isinstance(raw_item, dict):
             raise ValueError(
-                "Order contains an invalid inventory item"
+                "Order contains an invalid inventory item."
             )
 
         product_id = raw_item.get("productId")
-        product_name = raw_item.get("productName", product_id)
+        product_name = raw_item.get(
+            "productName",
+            product_id,
+        )
         quantity = raw_item.get("quantity")
 
         if (
@@ -153,18 +161,18 @@ def normalize_order_items(existing_order):
             or not product_id.strip()
         ):
             raise ValueError(
-                "Order contains an invalid productId"
+                "Order contains an invalid productId."
             )
 
         product_id = product_id.strip()
 
-        if isinstance(quantity, bool) or not isinstance(
-            quantity,
-            (int, Decimal),
+        if (
+            isinstance(quantity, bool)
+            or not isinstance(quantity, (int, Decimal))
         ):
             raise ValueError(
                 f"Order contains an invalid quantity for "
-                f"{product_id}"
+                f"{product_id}."
             )
 
         quantity = Decimal(str(quantity))
@@ -172,7 +180,7 @@ def normalize_order_items(existing_order):
         if quantity <= 0 or quantity % 1 != 0:
             raise ValueError(
                 f"Order contains an invalid quantity for "
-                f"{product_id}"
+                f"{product_id}."
             )
 
         if product_id in normalized_items:
@@ -187,14 +195,15 @@ def normalize_order_items(existing_order):
     return list(normalized_items.values())
 
 
-def validate_inventory(order_items):
+def validate_inventory(company_id, order_items):
     for order_item in order_items:
         product_id = order_item["productId"]
         requested_quantity = order_item["quantity"]
 
         response = inventory_table.get_item(
             Key={
-                "productId": product_id
+                "companyId": company_id,
+                "productId": product_id,
             },
             ConsistentRead=True,
         )
@@ -205,7 +214,7 @@ def validate_inventory(order_items):
             return api_response(
                 409,
                 {
-                    "message": "Inventory product not found",
+                    "message": "Inventory product not found.",
                     "productId": product_id,
                     "product": order_item["productName"],
                 },
@@ -217,14 +226,14 @@ def validate_inventory(order_items):
 
         if not isinstance(available_quantity, Decimal):
             logger.error(
-                "Inventory item %s has invalid quantityInStock",
+                "Inventory product %s has invalid quantityInStock",
                 product_id,
             )
 
             return api_response(
                 500,
                 {
-                    "message": "Inventory data is invalid"
+                    "message": "Inventory data is invalid."
                 },
             )
 
@@ -232,7 +241,7 @@ def validate_inventory(order_items):
             return api_response(
                 409,
                 {
-                    "message": "Insufficient inventory",
+                    "message": "Insufficient inventory.",
                     "productId": product_id,
                     "product": inventory_item.get(
                         "productName",
@@ -246,14 +255,53 @@ def validate_inventory(order_items):
     return None
 
 
+def update_status_without_inventory(
+    company_id,
+    order_id,
+    current_status,
+    requested_status,
+    updated_at,
+):
+    response = orders_table.update_item(
+        Key={
+            "companyId": company_id,
+            "orderId": order_id,
+        },
+        UpdateExpression=(
+            "SET #status = :requestedStatus, "
+            "updatedAt = :updatedAt"
+        ),
+        ExpressionAttributeNames={
+            "#status": "status",
+        },
+        ExpressionAttributeValues={
+            ":requestedStatus": requested_status,
+            ":currentStatus": current_status,
+            ":updatedAt": updated_at,
+        },
+        ConditionExpression=(
+            "attribute_exists(companyId) "
+            "AND attribute_exists(orderId) "
+            "AND #status = :currentStatus"
+        ),
+        ReturnValues="ALL_NEW",
+    )
+
+    return response.get("Attributes", {})
+
+
 def complete_order_transaction(
+    company_id,
     order_id,
     existing_order,
     updated_at,
 ):
     order_items = normalize_order_items(existing_order)
 
-    inventory_error = validate_inventory(order_items)
+    inventory_error = validate_inventory(
+        company_id,
+        order_items,
+    )
 
     if inventory_error:
         return inventory_error
@@ -269,23 +317,29 @@ def complete_order_transaction(
                 "Update": {
                     "TableName": inventory_table_name,
                     "Key": {
+                        "companyId": serializer.serialize(
+                            company_id
+                        ),
                         "productId": serializer.serialize(
                             product_id
-                        )
+                        ),
                     },
                     "UpdateExpression": (
                         "SET quantityInStock = "
-                        "quantityInStock - :quantity"
+                        "quantityInStock - :quantity, "
+                        "updatedAt = :updatedAt"
                     ),
                     "ConditionExpression": (
-                        "attribute_exists(productId) "
+                        "attribute_exists(companyId) "
+                        "AND attribute_exists(productId) "
                         "AND attribute_exists(quantityInStock) "
                         "AND quantityInStock >= :quantity"
                     ),
                     "ExpressionAttributeValues": (
                         serialize_values(
                             {
-                                ":quantity": requested_quantity
+                                ":quantity": requested_quantity,
+                                ":updatedAt": updated_at,
                             }
                         )
                     ),
@@ -298,20 +352,24 @@ def complete_order_transaction(
             "Update": {
                 "TableName": orders_table_name,
                 "Key": {
+                    "companyId": serializer.serialize(
+                        company_id
+                    ),
                     "orderId": serializer.serialize(
                         order_id
-                    )
+                    ),
                 },
                 "UpdateExpression": (
                     "SET #status = :completed, "
                     "updatedAt = :updatedAt"
                 ),
                 "ConditionExpression": (
-                    "attribute_exists(orderId) "
+                    "attribute_exists(companyId) "
+                    "AND attribute_exists(orderId) "
                     "AND #status = :preparing"
                 ),
                 "ExpressionAttributeNames": {
-                    "#status": "status"
+                    "#status": "status",
                 },
                 "ExpressionAttributeValues": (
                     serialize_values(
@@ -330,18 +388,21 @@ def complete_order_transaction(
         TransactItems=transaction_items
     )
 
-    updated_response = orders_table.get_item(
+    response = orders_table.get_item(
         Key={
-            "orderId": order_id
+            "companyId": company_id,
+            "orderId": order_id,
         },
         ConsistentRead=True,
     )
 
-    updated_order = updated_response.get("Item")
+    updated_order = response.get("Item", {})
 
     logger.info(
-        "Completed order %s and deducted %s inventory products",
+        "Completed order %s for company %s and deducted "
+        "%s inventory products",
         order_id,
+        company_id,
         len(order_items),
     )
 
@@ -350,56 +411,7 @@ def complete_order_transaction(
         {
             "message": (
                 "Order completed and inventory updated "
-                "successfully"
-            ),
-            "order": updated_order,
-        },
-    )
-
-
-def update_status_without_inventory(
-    order_id,
-    current_status,
-    requested_status,
-    updated_at,
-):
-    update_response = orders_table.update_item(
-        Key={
-            "orderId": order_id
-        },
-        UpdateExpression=(
-            "SET #status = :status, "
-            "updatedAt = :updatedAt"
-        ),
-        ConditionExpression=(
-            "attribute_exists(orderId) "
-            "AND #status = :currentStatus"
-        ),
-        ExpressionAttributeNames={
-            "#status": "status"
-        },
-        ExpressionAttributeValues={
-            ":status": requested_status,
-            ":updatedAt": updated_at,
-            ":currentStatus": current_status,
-        },
-        ReturnValues="ALL_NEW",
-    )
-
-    updated_order = update_response["Attributes"]
-
-    logger.info(
-        "Updated order %s from %s to %s",
-        order_id,
-        current_status,
-        requested_status,
-    )
-
-    return api_response(
-        200,
-        {
-            "message": (
-                "Order status updated successfully"
+                "successfully."
             ),
             "order": updated_order,
         },
@@ -408,13 +420,14 @@ def update_status_without_inventory(
 
 def lambda_handler(event, context):
     try:
+        company_id = get_company_id(event)
         order_id = get_order_id(event)
-        body = parse_request_body(event)
-        requested_status = validate_status(body["status"])
+        requested_status = parse_status(event)
 
         response = orders_table.get_item(
             Key={
-                "orderId": order_id
+                "companyId": company_id,
+                "orderId": order_id,
             },
             ConsistentRead=True,
         )
@@ -424,32 +437,30 @@ def lambda_handler(event, context):
         if not existing_order:
             return api_response(
                 404,
-                {
-                    "message": "Order not found"
-                },
+                {"message": "Order not found."},
             )
 
         current_status = existing_order.get("status")
 
         if current_status not in VALID_TRANSITIONS:
             logger.error(
-                "Order %s has invalid stored status %s",
+                "Order %s has invalid status %s",
                 order_id,
                 current_status,
             )
 
             return api_response(
                 500,
-                {
-                    "message": "Order data is invalid"
-                },
+                {"message": "Order data is invalid."},
             )
 
         if requested_status == current_status:
             return api_response(
                 200,
                 {
-                    "message": "Order status is unchanged",
+                    "message": (
+                        "Order already has the requested status."
+                    ),
                     "order": existing_order,
                 },
             )
@@ -463,9 +474,8 @@ def lambda_handler(event, context):
                 409,
                 {
                     "message": (
-                        f"Order cannot move from "
-                        f"{current_status} to "
-                        f"{requested_status}"
+                        f"Order cannot transition from "
+                        f"{current_status} to {requested_status}."
                     )
                 },
             )
@@ -474,44 +484,65 @@ def lambda_handler(event, context):
             timezone.utc
         ).isoformat()
 
-        if (
-            current_status == "Preparing"
-            and requested_status == "Completed"
-        ):
+        if requested_status == "Completed":
             return complete_order_transaction(
+                company_id,
                 order_id,
                 existing_order,
                 updated_at,
             )
 
-        return update_status_without_inventory(
+        updated_order = update_status_without_inventory(
+            company_id,
             order_id,
             current_status,
             requested_status,
             updated_at,
         )
 
-    except ValueError as error:
+        logger.info(
+            "Updated order %s for company %s from %s to %s",
+            order_id,
+            company_id,
+            current_status,
+            requested_status,
+        )
+
         return api_response(
-            400,
+            200,
             {
-                "message": str(error)
+                "message": "Order updated successfully.",
+                "order": updated_order,
             },
         )
 
+    except PermissionError as error:
+        return api_response(
+            403,
+            {"message": str(error)},
+        )
+
+    except ValueError as error:
+        return api_response(
+            400,
+            {"message": str(error)},
+        )
+
     except ClientError as error:
-        error_code = error.response.get(
-            "Error",
-            {},
-        ).get("Code")
+        error_code = (
+            error.response
+            .get("Error", {})
+            .get("Code", "")
+        )
 
         if error_code == "ConditionalCheckFailedException":
             return api_response(
                 409,
                 {
                     "message": (
-                        "Order changed before this update "
-                        "could be completed. Refresh and retry."
+                        "The order or inventory changed while "
+                        "the update was being processed. "
+                        "Refresh and try again."
                     )
                 },
             )
@@ -526,31 +557,28 @@ def lambda_handler(event, context):
                 409,
                 {
                     "message": (
-                        "Inventory or order data changed before "
-                        "completion. Refresh and retry."
+                        "Unable to complete the order. "
+                        "Inventory may have changed; refresh "
+                        "and try again."
                     )
                 },
             )
 
         logger.exception(
-            "DynamoDB error while updating order"
+            "DynamoDB error while updating order."
         )
 
         return api_response(
             500,
-            {
-                "message": "Unable to update order"
-            },
+            {"message": "Unable to update order."},
         )
 
     except Exception:
         logger.exception(
-            "Unexpected error while updating order"
+            "Unexpected error while updating order."
         )
 
         return api_response(
             500,
-            {
-                "message": "Internal server error"
-            },
+            {"message": "Internal server error."},
         )

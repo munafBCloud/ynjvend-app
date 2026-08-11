@@ -1,9 +1,21 @@
 output "inventory_table_name" {
-  value = aws_dynamodb_table.inventory.name
+  value = aws_dynamodb_table.inventory_v2.name
 }
 
 output "customers_table_name" {
-  value = aws_dynamodb_table.customers.name
+  value = aws_dynamodb_table.customers_v2.name
+}
+
+output "orders_table_name" {
+  value = aws_dynamodb_table.orders_v2.name
+}
+
+output "invoices_table_name" {
+  value = aws_dynamodb_table.invoices.name
+}
+
+output "companies_table_name" {
+  value = aws_dynamodb_table.companies.name
 }
 
 output "api_endpoint" {

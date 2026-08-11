@@ -12,9 +12,9 @@ resource "aws_lambda_function" "create_order" {
 
   environment {
     variables = {
-      ORDERS_TABLE    = aws_dynamodb_table.orders.name
-      CUSTOMERS_TABLE = aws_dynamodb_table.customers.name
-      INVENTORY_TABLE = aws_dynamodb_table.inventory.name
+      ORDERS_TABLE    = aws_dynamodb_table.orders_v2.name
+      CUSTOMERS_TABLE = aws_dynamodb_table.customers_v2.name
+      INVENTORY_TABLE = aws_dynamodb_table.inventory_v2.name
     }
   }
 
@@ -39,7 +39,7 @@ resource "aws_lambda_function" "get_orders" {
 
   environment {
     variables = {
-      ORDERS_TABLE = aws_dynamodb_table.orders.name
+      ORDERS_TABLE = aws_dynamodb_table.orders_v2.name
     }
   }
 
@@ -64,8 +64,8 @@ resource "aws_lambda_function" "update_order" {
 
   environment {
     variables = {
-      ORDERS_TABLE    = aws_dynamodb_table.orders.name
-      INVENTORY_TABLE = aws_dynamodb_table.inventory.name
+      ORDERS_TABLE    = aws_dynamodb_table.orders_v2.name
+      INVENTORY_TABLE = aws_dynamodb_table.inventory_v2.name
     }
   }
 

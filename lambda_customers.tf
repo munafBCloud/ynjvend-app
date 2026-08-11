@@ -12,7 +12,7 @@ resource "aws_lambda_function" "create_customer" {
 
   environment {
     variables = {
-      CUSTOMERS_TABLE = aws_dynamodb_table.customers.name
+      CUSTOMERS_TABLE = aws_dynamodb_table.customers_v2.name
     }
   }
 
@@ -37,7 +37,61 @@ resource "aws_lambda_function" "get_customers" {
 
   environment {
     variables = {
-      CUSTOMERS_TABLE = aws_dynamodb_table.customers.name
+      CUSTOMERS_TABLE = aws_dynamodb_table.customers_v2.name
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}
+
+resource "aws_lambda_function" "update_customer" {
+  function_name = "${var.project_name}-${var.environment}-update-customer"
+
+  role = aws_iam_role.lambda_execution_role.arn
+
+  runtime = "python3.13"
+  handler = "update_customer.lambda_handler"
+
+  filename         = "lambda/update_customer.zip"
+  source_code_hash = filebase64sha256("lambda/update_customer.zip")
+
+  timeout     = 10
+  memory_size = 128
+
+  environment {
+    variables = {
+      CUSTOMERS_TABLE = aws_dynamodb_table.customers_v2.name
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}
+
+resource "aws_lambda_function" "delete_customer" {
+  function_name = "${var.project_name}-${var.environment}-delete-customer"
+
+  role = aws_iam_role.lambda_execution_role.arn
+
+  runtime = "python3.13"
+  handler = "delete_customer.lambda_handler"
+
+  filename         = "lambda/delete_customer.zip"
+  source_code_hash = filebase64sha256("lambda/delete_customer.zip")
+
+  timeout     = 10
+  memory_size = 128
+
+  environment {
+    variables = {
+      CUSTOMERS_TABLE = aws_dynamodb_table.customers_v2.name
     }
   }
 
