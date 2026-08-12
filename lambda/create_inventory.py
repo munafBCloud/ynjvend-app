@@ -15,6 +15,17 @@ logger.setLevel(logging.INFO)
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["INVENTORY_TABLE_NAME"])
 
+ALLOWED_FIELDS = {
+    "productName",
+    "brand",
+    "caseCost",
+    "sellingPrice",
+    "quantityInStock",
+    "reorderLevel",
+    "status",
+    "productId",
+}
+
 
 def response(status_code, body):
     return {
@@ -95,6 +106,19 @@ def handler(event, context):
                 400,
                 {
                     "message": "Request body must be a JSON object."
+                },
+            )
+
+        unexpected_fields = sorted(
+            set(body.keys()) - ALLOWED_FIELDS
+        )
+
+        if unexpected_fields:
+            return response(
+                400,
+                {
+                    "message": "Unexpected fields were provided.",
+                    "fields": unexpected_fields,
                 },
             )
 
