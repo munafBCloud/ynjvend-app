@@ -12,7 +12,10 @@ import {
 import { getCustomers } from "../../services/customers";
 import { getInventory } from "../../services/inventory";
 
-import { formatDate } from "../../utils/formatters";
+import {
+  formatCurrency,
+  formatDate,
+} from "../../utils/formatters";
 import { getOrderStatusClasses } from "../../utils/status";
 
 import type { Customer } from "../../types/customer";
@@ -295,14 +298,12 @@ export default function OwnerOrdersPage() {
     }
   }
 
-
   function getTotalQuantity(order: Order) {
     return order.items.reduce(
       (total, item) => total + item.quantity,
       0,
     );
   }
-
 
   return (
     <section className="px-6 py-10">
@@ -445,6 +446,10 @@ export default function OwnerOrdersPage() {
                             <p className="mt-1 text-sm text-slate-500">
                               {product.brand} ·{" "}
                               {product.quantityInStock} in stock
+                            </p>
+
+                            <p className="mt-1 text-sm font-semibold text-slate-700">
+                              {formatCurrency(product.sellingPrice)} / case
                             </p>
                           </div>
 
@@ -674,7 +679,7 @@ export default function OwnerOrdersPage() {
 
                     return (
                       <article key={order.orderId}>
-                        <div className="grid gap-5 px-6 py-5 lg:grid-cols-[1.5fr_auto_auto_auto_auto] lg:items-center">
+                        <div className="grid gap-5 px-6 py-5 lg:grid-cols-[1.5fr_auto_auto_auto_auto_auto] lg:items-center">
                           <div>
                             <p className="font-bold text-slate-950">
                               {order.businessName}
@@ -702,6 +707,16 @@ export default function OwnerOrdersPage() {
 
                             <p className="mt-1 font-semibold text-slate-950">
                               {getTotalQuantity(order)}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Total
+                            </p>
+
+                            <p className="mt-1 font-bold text-slate-950">
+                              {formatCurrency(order.total)}
                             </p>
                           </div>
 
@@ -758,13 +773,84 @@ export default function OwnerOrdersPage() {
                                           <p className="mt-1 text-xs text-slate-500">
                                             {item.productId}
                                           </p>
+
+                                          <p className="mt-2 text-sm text-slate-600">
+                                            {item.quantity} ×{" "}
+                                            {formatCurrency(item.unitPrice)}
+                                          </p>
                                         </div>
 
-                                        <p className="font-bold text-slate-950">
-                                          Qty {item.quantity}
-                                        </p>
+                                        <div className="text-right">
+                                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            Line Total
+                                          </p>
+
+                                          <p className="mt-1 font-bold text-slate-950">
+                                            {formatCurrency(item.lineTotal)}
+                                          </p>
+                                        </div>
                                       </div>
                                     ))}
+                                  </div>
+                                </div>
+
+                                <div className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
+                                  <h4 className="font-bold text-slate-950">
+                                    Order Summary
+                                  </h4>
+
+                                  <div className="mt-4 space-y-3 text-sm">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-slate-600">
+                                        Subtotal
+                                      </span>
+
+                                      <span className="font-semibold text-slate-950">
+                                        {formatCurrency(order.subtotal)}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-slate-600">
+                                        Tax
+                                      </span>
+
+                                      <span className="font-semibold text-slate-950">
+                                        {formatCurrency(order.tax)}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-slate-600">
+                                        Discount
+                                      </span>
+
+                                      <span className="font-semibold text-slate-950">
+                                        {formatCurrency(order.discount)}
+                                      </span>
+                                    </div>
+
+                                    <div className="border-t border-slate-200 pt-3">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-slate-950">
+                                          Total
+                                        </span>
+
+                                        <span className="text-lg font-bold text-slate-950">
+                                          {formatCurrency(order.total)}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                                      <span className="text-slate-600">
+                                        Payment Status
+                                      </span>
+
+                                      <span className="font-semibold text-slate-950">
+                                        {order.paymentStatus}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
@@ -850,7 +936,10 @@ export default function OwnerOrdersPage() {
                                   </p>
 
                                   <p className="mt-1 text-sm text-slate-700">
-                                    {formatDate(order.updatedAt, "dateTime")}
+                                    {formatDate(
+                                      order.updatedAt,
+                                      "dateTime",
+                                    )}
                                   </p>
                                 </div>
                               </div>

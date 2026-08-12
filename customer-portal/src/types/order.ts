@@ -4,10 +4,17 @@ export type OrderStatus =
   | "Completed"
   | "Cancelled";
 
+export type PaymentStatus =
+  | "Unpaid"
+  | "Partially Paid"
+  | "Paid";
+
 export type OrderItem = {
   productId: string;
   productName: string;
   quantity: number;
+  unitPrice: number;
+  lineTotal: number;
 };
 
 export type Order = {
@@ -17,6 +24,11 @@ export type Order = {
   status: OrderStatus;
   notes: string;
   items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  paymentStatus: PaymentStatus;
   createdAt: string;
   updatedAt: string;
 };
@@ -46,4 +58,3 @@ export type UpdateOrderResponse = {
   message: string;
   order: Order;
 };
-
