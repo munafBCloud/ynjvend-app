@@ -2,26 +2,35 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 import boto3
 from botocore.exceptions import ClientError
 
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
-invoices_table = dynamodb.Table(os.environ["INVOICES_TABLE"])
 
-ALLOWED_STATUSES = {
-    "Draft",
-    "Sent",
-    "Partially Paid",
-    "Paid",
-    "Overdue",
-    "Void",
+invoices_table = dynamodb.Table(
+    os.environ["INVOICES_TABLE"]
+)
+
+orders_table = dynamodb.Table(
+    os.environ["ORDERS_TABLE"]
+)
+
+ALLOWED_FIELDS = {
+    "orderId",
+    "issueDate",
+    "dueDate",
+    "notes",
 }
+
+MAX_NOTES_LENGTH = 2000
+MAX_ORDER_ITEMS = 100
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -38,7 +47,10 @@ def api_response(status_code, body):
         "headers": {
             "Content-Type": "application/json",
         },
-        "body": json.dumps(body, cls=DecimalEncoder),
+        "body": json.dumps(
+            body,
+            cls=DecimalEncoder,
+        ),
     }
 
 
@@ -50,10 +62,17 @@ def get_company_id(event):
         .get("claims", {})
     )
 
-    company_id = claims.get("custom:companyId")
+    company_id = claims.get(
+        "custom:companyId"
+    )
 
-    if not isinstance(company_id, str) or not company_id.strip():
-        raise PermissionError("Authenticated user is missing company access.")
+    if (
+        not isinstance(company_id, str)
+        or not company_id.strip()
+    ):
+        raise PermissionError(
+            "Authenticated user is missing company access."
+        )
 
     return company_id.strip()
 
@@ -62,173 +81,519 @@ def parse_body(event):
     raw_body = event.get("body")
 
     if not raw_body:
-        raise ValueError("Request body is required.")
+        raise ValueError(
+            "Request body is required."
+        )
 
     try:
         body = json.loads(raw_body)
     except json.JSONDecodeError as error:
-        raise ValueError("Request body must contain valid JSON.") from error
+        raise ValueError(
+            "Request body must contain valid JSON."
+        ) from error
 
     if not isinstance(body, dict):
-        raise ValueError("Request body must be a JSON object.")
+        raise ValueError(
+            "Request body must be a JSON object."
+        )
+
+    unexpected_fields = sorted(
+        set(body.keys()) - ALLOWED_FIELDS
+    )
+
+    if unexpected_fields:
+        raise ValueError(
+            "Unexpected fields were provided: "
+            + ", ".join(unexpected_fields)
+        )
 
     return body
 
 
-def require_string(body, field_name, max_length):
+def require_string(
+    body,
+    field_name,
+    max_length,
+):
     value = body.get(field_name)
 
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"{field_name} is required.")
+    if (
+        not isinstance(value, str)
+        or not value.strip()
+    ):
+        raise ValueError(
+            f"{field_name} is required."
+        )
 
     value = value.strip()
 
     if len(value) > max_length:
         raise ValueError(
-            f"{field_name} must be no more than {max_length} characters."
+            f"{field_name} must be no more than "
+            f"{max_length} characters."
         )
 
     return value
 
 
-def optional_string(body, field_name, max_length):
+def optional_string(
+    body,
+    field_name,
+    max_length,
+):
     value = body.get(field_name, "")
 
     if value is None:
         return ""
 
     if not isinstance(value, str):
-        raise ValueError(f"{field_name} must be a string.")
+        raise ValueError(
+            f"{field_name} must be a string."
+        )
 
     value = value.strip()
 
     if len(value) > max_length:
         raise ValueError(
-            f"{field_name} must be no more than {max_length} characters."
+            f"{field_name} must be no more than "
+            f"{max_length} characters."
         )
 
     return value
 
 
-def parse_money(body, field_name, default="0"):
-    raw_value = body.get(field_name, default)
+def validate_date(value, field_name):
+    try:
+        parsed_date = date.fromisoformat(
+            value
+        )
+    except ValueError as error:
+        raise ValueError(
+            f"{field_name} must use YYYY-MM-DD format."
+        ) from error
 
-    if isinstance(raw_value, bool):
-        raise ValueError(f"{field_name} must be a valid number.")
+    return parsed_date
+
+
+def validate_money(value, field_name):
+    if isinstance(value, bool):
+        raise ValueError(
+            f"{field_name} must be a valid number."
+        )
 
     try:
-        value = Decimal(str(raw_value))
-    except (InvalidOperation, ValueError, TypeError) as error:
-        raise ValueError(f"{field_name} must be a valid number.") from error
+        amount = Decimal(str(value))
+    except (
+        InvalidOperation,
+        ValueError,
+        TypeError,
+    ) as error:
+        raise ValueError(
+            f"{field_name} must be a valid number."
+        ) from error
 
-    if value < 0:
-        raise ValueError(f"{field_name} cannot be negative.")
+    if not amount.is_finite():
+        raise ValueError(
+            f"{field_name} must be a valid number."
+        )
 
-    return value.quantize(Decimal("0.01"))
+    if amount < 0:
+        raise ValueError(
+            f"{field_name} cannot be negative."
+        )
+
+    return amount.quantize(
+        Decimal("0.01")
+    )
 
 
-def validate_items(body):
-    raw_items = body.get("items")
+def get_order(company_id, order_id):
+    response = orders_table.get_item(
+        Key={
+            "companyId": company_id,
+            "orderId": order_id,
+        },
+        ConsistentRead=True,
+    )
 
-    if not isinstance(raw_items, list) or not raw_items:
-        raise ValueError("At least one invoice item is required.")
+    return response.get("Item")
 
-    items = []
 
-    for index, raw_item in enumerate(raw_items):
+def validate_order_items(order):
+    raw_items = order.get("items")
+
+    if (
+        not isinstance(raw_items, list)
+        or not raw_items
+    ):
+        raise RuntimeError(
+            "Order contains no valid items."
+        )
+
+    if len(raw_items) > MAX_ORDER_ITEMS:
+        raise RuntimeError(
+            "Order contains too many items."
+        )
+
+    validated_items = []
+
+    for index, raw_item in enumerate(
+        raw_items
+    ):
         if not isinstance(raw_item, dict):
-            raise ValueError(f"Invoice item {index + 1} is invalid.")
+            raise RuntimeError(
+                f"Order item {index + 1} is invalid."
+            )
 
-        product_id = require_string(raw_item, "productId", 100)
-        product_name = require_string(raw_item, "productName", 200)
+        product_id = raw_item.get(
+            "productId"
+        )
 
-        raw_quantity = raw_item.get("quantity")
+        product_name = raw_item.get(
+            "productName"
+        )
 
-        if isinstance(raw_quantity, bool):
-            raise ValueError(
-                f"quantity for invoice item {index + 1} must be valid."
+        quantity = raw_item.get(
+            "quantity"
+        )
+
+        unit_price = raw_item.get(
+            "unitPrice"
+        )
+
+        line_total = raw_item.get(
+            "lineTotal"
+        )
+
+        if (
+            not isinstance(product_id, str)
+            or not product_id.strip()
+        ):
+            raise RuntimeError(
+                "Order contains an invalid productId."
+            )
+
+        if (
+            not isinstance(product_name, str)
+            or not product_name.strip()
+        ):
+            raise RuntimeError(
+                "Order contains an invalid productName."
+            )
+
+        if isinstance(quantity, bool):
+            raise RuntimeError(
+                "Order contains an invalid quantity."
             )
 
         try:
-            quantity = Decimal(str(raw_quantity))
-        except (InvalidOperation, ValueError, TypeError) as error:
-            raise ValueError(
-                f"quantity for invoice item {index + 1} must be valid."
+            quantity = Decimal(
+                str(quantity)
+            )
+        except (
+            InvalidOperation,
+            ValueError,
+            TypeError,
+        ) as error:
+            raise RuntimeError(
+                "Order contains an invalid quantity."
             ) from error
 
-        if quantity <= 0:
-            raise ValueError(
-                f"quantity for invoice item {index + 1} must be greater than zero."
+        if (
+            quantity <= 0
+            or quantity % 1 != 0
+        ):
+            raise RuntimeError(
+                "Order contains an invalid quantity."
             )
 
-        unit_price = parse_money(raw_item, "unitPrice")
-        line_total = (quantity * unit_price).quantize(Decimal("0.01"))
+        try:
+            unit_price = validate_money(
+                unit_price,
+                "unitPrice",
+            )
 
-        items.append(
+            line_total = validate_money(
+                line_total,
+                "lineTotal",
+            )
+        except ValueError as error:
+            raise RuntimeError(
+                "Order contains invalid pricing."
+            ) from error
+
+        expected_line_total = (
+            quantity * unit_price
+        ).quantize(
+            Decimal("0.01")
+        )
+
+        if line_total != expected_line_total:
+            raise RuntimeError(
+                "Order item pricing is inconsistent."
+            )
+
+        validated_items.append(
             {
-                "productId": product_id,
-                "productName": product_name,
+                "productId": (
+                    product_id.strip()
+                ),
+                "productName": (
+                    product_name.strip()
+                ),
                 "quantity": quantity,
                 "unitPrice": unit_price,
                 "lineTotal": line_total,
             }
         )
 
-    return items
+    return validated_items
+
+
+def validate_order_financials(
+    order,
+    items,
+):
+    try:
+        subtotal = validate_money(
+            order.get("subtotal"),
+            "subtotal",
+        )
+
+        tax = validate_money(
+            order.get("tax"),
+            "tax",
+        )
+
+        discount = validate_money(
+            order.get("discount"),
+            "discount",
+        )
+
+        total = validate_money(
+            order.get("total"),
+            "total",
+        )
+    except ValueError as error:
+        raise RuntimeError(
+            "Order contains invalid financial data."
+        ) from error
+
+    calculated_subtotal = sum(
+        (
+            item["lineTotal"]
+            for item in items
+        ),
+        Decimal("0.00"),
+    ).quantize(
+        Decimal("0.01")
+    )
+
+    if subtotal != calculated_subtotal:
+        raise RuntimeError(
+            "Order subtotal is inconsistent."
+        )
+
+    calculated_total = (
+        subtotal
+        + tax
+        - discount
+    ).quantize(
+        Decimal("0.01")
+    )
+
+    if total != calculated_total:
+        raise RuntimeError(
+            "Order total is inconsistent."
+        )
+
+    return (
+        subtotal,
+        tax,
+        discount,
+        total,
+    )
 
 
 def lambda_handler(event, context):
     try:
-        company_id = get_company_id(event)
-        body = parse_body(event)
-
-        customer_id = require_string(body, "customerId", 100)
-        business_name = require_string(body, "businessName", 200)
-        issue_date = require_string(body, "issueDate", 30)
-        due_date = require_string(body, "dueDate", 30)
-
-        order_id = optional_string(body, "orderId", 100)
-        notes = optional_string(body, "notes", 2000)
-
-        status = body.get("status", "Draft")
-
-        if not isinstance(status, str) or status not in ALLOWED_STATUSES:
-            raise ValueError(
-                "status must be Draft, Sent, Partially Paid, Paid, "
-                "Overdue, or Void."
-            )
-
-        items = validate_items(body)
-
-        subtotal = sum(
-            (item["lineTotal"] for item in items),
-            Decimal("0.00"),
+        company_id = get_company_id(
+            event
         )
 
-        tax = parse_money(body, "tax")
-        total = (subtotal + tax).quantize(Decimal("0.01"))
-        amount_paid = parse_money(body, "amountPaid")
-        balance_due = (total - amount_paid).quantize(Decimal("0.01"))
+        body = parse_body(
+            event
+        )
 
-        if balance_due < 0:
-            raise ValueError("amountPaid cannot be greater than total.")
+        order_id = require_string(
+            body,
+            "orderId",
+            100,
+        )
 
-        now = datetime.now(timezone.utc).isoformat()
-        invoice_id = str(uuid.uuid4())
-        invoice_number = f"INV-{now[:4].replace('-', '')}-{invoice_id[:8].upper()}"
+        issue_date = require_string(
+            body,
+            "issueDate",
+            30,
+        )
+
+        due_date = require_string(
+            body,
+            "dueDate",
+            30,
+        )
+
+        notes = optional_string(
+            body,
+            "notes",
+            MAX_NOTES_LENGTH,
+        )
+
+        parsed_issue_date = validate_date(
+            issue_date,
+            "issueDate",
+        )
+
+        parsed_due_date = validate_date(
+            due_date,
+            "dueDate",
+        )
+
+        if parsed_due_date < parsed_issue_date:
+            raise ValueError(
+                "dueDate cannot be before issueDate."
+            )
+
+        order = get_order(
+            company_id,
+            order_id,
+        )
+
+        if not order:
+            return api_response(
+                404,
+                {
+                    "message": (
+                        "Order not found."
+                    )
+                },
+            )
+
+        order_status = order.get(
+            "status"
+        )
+
+        if order_status != "Completed":
+            return api_response(
+                409,
+                {
+                    "message": (
+                        "Only completed orders "
+                        "can be invoiced."
+                    )
+                },
+            )
+
+        customer_id = order.get(
+            "customerId"
+        )
+
+        business_name = order.get(
+            "businessName"
+        )
+
+        if (
+            not isinstance(customer_id, str)
+            or not customer_id.strip()
+        ):
+            logger.error(
+                "Order %s has invalid customerId",
+                order_id,
+            )
+
+            return api_response(
+                500,
+                {
+                    "message": (
+                        "Order customer data "
+                        "is incomplete."
+                    )
+                },
+            )
+
+        if (
+            not isinstance(business_name, str)
+            or not business_name.strip()
+        ):
+            logger.error(
+                "Order %s has invalid businessName",
+                order_id,
+            )
+
+            return api_response(
+                500,
+                {
+                    "message": (
+                        "Order customer data "
+                        "is incomplete."
+                    )
+                },
+            )
+
+        items = validate_order_items(
+            order
+        )
+
+        (
+            subtotal,
+            tax,
+            discount,
+            total,
+        ) = validate_order_financials(
+            order,
+            items,
+        )
+
+        now = datetime.now(
+            timezone.utc
+        ).isoformat()
+
+        invoice_id = (
+            f"ORDER-{order_id}"
+        )
+
+        invoice_number_id = str(
+            uuid.uuid4()
+        )
+
+        invoice_number = (
+            f"INV-{now[:4]}-"
+            f"{invoice_number_id[:8].upper()}"
+        )
+
+        amount_paid = Decimal(
+            "0.00"
+        )
+
+        balance_due = total
 
         invoice = {
             "companyId": company_id,
             "invoiceId": invoice_id,
             "invoiceNumber": invoice_number,
             "orderId": order_id,
-            "customerId": customer_id,
-            "businessName": business_name,
-            "status": status,
+            "customerId": (
+                customer_id.strip()
+            ),
+            "businessName": (
+                business_name.strip()
+            ),
+            "status": "Draft",
             "issueDate": issue_date,
             "dueDate": due_date,
             "subtotal": subtotal,
             "tax": tax,
+            "discount": discount,
             "total": total,
             "amountPaid": amount_paid,
             "balanceDue": balance_due,
@@ -241,43 +606,107 @@ def lambda_handler(event, context):
         invoices_table.put_item(
             Item=invoice,
             ConditionExpression=(
-                "attribute_not_exists(companyId) "
-                "AND attribute_not_exists(invoiceId)"
+                "attribute_not_exists("
+                "companyId) AND "
+                "attribute_not_exists("
+                "invoiceId)"
             ),
         )
 
         logger.info(
-            "Created invoice %s for company %s",
+            "Created invoice %s from order %s "
+            "for company %s with total %s",
             invoice_id,
+            order_id,
             company_id,
+            total,
         )
 
         return api_response(
             201,
             {
-                "message": "Invoice created successfully.",
+                "message": (
+                    "Invoice created successfully."
+                ),
                 "invoice": invoice,
             },
         )
 
     except PermissionError as error:
-        return api_response(403, {"message": str(error)})
+        return api_response(
+            403,
+            {
+                "message": str(error)
+            },
+        )
 
     except ValueError as error:
-        return api_response(400, {"message": str(error)})
+        return api_response(
+            400,
+            {
+                "message": str(error)
+            },
+        )
 
-    except ClientError:
-        logger.exception("DynamoDB error while creating invoice.")
+    except RuntimeError:
+        logger.exception(
+            "Invalid order data while "
+            "creating invoice."
+        )
 
         return api_response(
             500,
-            {"message": "Unable to create invoice."},
+            {
+                "message": (
+                    "Unable to create invoice "
+                    "from order data."
+                )
+            },
+        )
+
+    except ClientError as error:
+        error_code = (
+            error.response
+            .get("Error", {})
+            .get("Code", "")
+        )
+
+        if error_code == "ConditionalCheckFailedException":
+            return api_response(
+                409,
+                {
+                    "message": (
+                        "An invoice already exists "
+                        "for this order."
+                    )
+                },
+            )
+
+        logger.exception(
+            "DynamoDB error while "
+            "creating invoice."
+        )
+
+        return api_response(
+            500,
+            {
+                "message": (
+                    "Unable to create invoice."
+                )
+            },
         )
 
     except Exception:
-        logger.exception("Unexpected error while creating invoice.")
+        logger.exception(
+            "Unexpected error while "
+            "creating invoice."
+        )
 
         return api_response(
             500,
-            {"message": "Internal server error."},
+            {
+                "message": (
+                    "Internal server error."
+                )
+            },
         )

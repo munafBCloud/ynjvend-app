@@ -26,6 +26,7 @@ export type Invoice = {
   dueDate: string;
   subtotal: number;
   tax: number;
+  discount: number;
   total: number;
   amountPaid: number;
   balanceDue: number;
@@ -35,24 +36,11 @@ export type Invoice = {
   updatedAt: string;
 };
 
-export type CreateInvoiceItem = {
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-};
-
 export type CreateInvoiceInput = {
-  orderId?: string;
-  customerId: string;
-  businessName: string;
-  status?: InvoiceStatus;
+  orderId: string;
   issueDate: string;
   dueDate: string;
-  tax: number;
-  amountPaid: number;
   notes: string;
-  items: CreateInvoiceItem[];
 };
 
 export type InvoicesResponse = {

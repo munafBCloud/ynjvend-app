@@ -14,6 +14,7 @@ resource "aws_lambda_function" "create_invoice" {
   environment {
     variables = {
       INVOICES_TABLE = aws_dynamodb_table.invoices.name
+      ORDERS_TABLE   = aws_dynamodb_table.orders_v2.name
     }
   }
 
