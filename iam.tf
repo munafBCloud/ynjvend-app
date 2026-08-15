@@ -40,10 +40,6 @@ resource "aws_iam_role_policy" "lambda_dynamodb_access" {
           aws_dynamodb_table.orders_v2.arn,
           aws_dynamodb_table.invoices.arn,
 
-          aws_dynamodb_table.inventory.arn,
-          aws_dynamodb_table.customers.arn,
-          aws_dynamodb_table.requests.arn,
-          aws_dynamodb_table.orders.arn
         ]
       }
     ]
