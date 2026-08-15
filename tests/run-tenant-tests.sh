@@ -38,53 +38,60 @@ do
   fi
 done
 
-read -s -p "Tenant A Cognito password: " PASSWORD_A
-echo
+TOKEN_A="${DISTRODEX_ID_TOKEN:-}"
+TOKEN_B="${DISTRODEX_TENANT_B_ID_TOKEN:-}"
 
-AUTH_A="$(
-  aws cognito-idp initiate-auth \
-    --region "$REGION" \
-    --client-id "$CLIENT_ID" \
-    --auth-flow USER_PASSWORD_AUTH \
-    --auth-parameters \
-      USERNAME="$TENANT_A_EMAIL",PASSWORD="$PASSWORD_A"
-)"
+if [[ -z "$TOKEN_A" ]]; then
+  read -s -p "Tenant A Cognito password: " PASSWORD_A
+  echo
 
-unset PASSWORD_A
+  AUTH_A="$(
+    aws cognito-idp initiate-auth \
+      --region "$REGION" \
+      --client-id "$CLIENT_ID" \
+      --auth-flow USER_PASSWORD_AUTH \
+      --auth-parameters \
+        USERNAME="$TENANT_A_EMAIL",PASSWORD="$PASSWORD_A"
+  )"
 
-TOKEN_A="$(
-  printf '%s' "$AUTH_A" |
-  python3 -c '
+  unset PASSWORD_A
+
+  TOKEN_A="$(
+    printf '%s' "$AUTH_A" |
+    python3 -c '
 import json,sys
 print(json.load(sys.stdin)["AuthenticationResult"]["IdToken"])
 '
-)"
+  )"
 
-unset AUTH_A
+  unset AUTH_A
+fi
 
-read -s -p "Tenant B Cognito password: " PASSWORD_B
-echo
+if [[ -z "$TOKEN_B" ]]; then
+  read -s -p "Tenant B Cognito password: " PASSWORD_B
+  echo
 
-AUTH_B="$(
-  aws cognito-idp initiate-auth \
-    --region "$REGION" \
-    --client-id "$CLIENT_ID" \
-    --auth-flow USER_PASSWORD_AUTH \
-    --auth-parameters \
-      USERNAME="$TENANT_B_EMAIL",PASSWORD="$PASSWORD_B"
-)"
+  AUTH_B="$(
+    aws cognito-idp initiate-auth \
+      --region "$REGION" \
+      --client-id "$CLIENT_ID" \
+      --auth-flow USER_PASSWORD_AUTH \
+      --auth-parameters \
+        USERNAME="$TENANT_B_EMAIL",PASSWORD="$PASSWORD_B"
+  )"
 
-unset PASSWORD_B
+  unset PASSWORD_B
 
-TOKEN_B="$(
-  printf '%s' "$AUTH_B" |
-  python3 -c '
+  TOKEN_B="$(
+    printf '%s' "$AUTH_B" |
+    python3 -c '
 import json,sys
 print(json.load(sys.stdin)["AuthenticationResult"]["IdToken"])
 '
-)"
+  )"
 
-unset AUTH_B
+  unset AUTH_B
+fi
 
 python3 tests/integration/tenant_isolation.py \
   --api "$API" \
