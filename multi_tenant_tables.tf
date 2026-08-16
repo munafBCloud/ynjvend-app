@@ -1,4 +1,10 @@
 resource "aws_dynamodb_table" "companies" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
   name         = "${var.project_name}-${var.environment}-companies"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "companyId"
@@ -16,6 +22,12 @@ resource "aws_dynamodb_table" "companies" {
 }
 
 resource "aws_dynamodb_table" "customers_v2" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
   name         = "${var.project_name}-${var.environment}-customers-v2"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "companyId"
@@ -39,6 +51,12 @@ resource "aws_dynamodb_table" "customers_v2" {
 }
 
 resource "aws_dynamodb_table" "inventory_v2" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
   name         = "${var.project_name}-${var.environment}-inventory-v2"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "companyId"
@@ -62,6 +80,12 @@ resource "aws_dynamodb_table" "inventory_v2" {
 }
 
 resource "aws_dynamodb_table" "orders_v2" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
   name         = "${var.project_name}-${var.environment}-orders-v2"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "companyId"
