@@ -10,6 +10,11 @@ import boto3
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["BETA_APPLICATIONS_TABLE"])
 
+ses = boto3.client("sesv2")
+
+notification_from_email = os.environ.get("NOTIFICATION_FROM_EMAIL", "")
+notification_to_email = os.environ.get("NOTIFICATION_TO_EMAIL", "")
+
 
 def response(status_code, body):
     return {
@@ -25,6 +30,71 @@ def clean_string(value):
     if not isinstance(value, str):
         return ""
     return value.strip()
+
+
+def send_internal_notification(item):
+    if not notification_from_email or not notification_to_email:
+        print(
+            json.dumps(
+                {
+                    "level": "WARNING",
+                    "event": "beta_notification_not_configured",
+                    "applicationId": item["applicationId"],
+                }
+            )
+        )
+        return
+
+    subject = f"New Distro'Dex Beta Application — {item['businessName']}"
+
+    body = f"""New Distro'Dex Founding Beta Application
+
+BUSINESS
+Business Name: {item['businessName']}
+Contact Name: {item['contactName']}
+Email: {item['email']}
+Phone: {item.get('phone', 'Not provided')}
+
+DISTRIBUTION PROFILE
+Distribution Type: {item['distributionType']}
+SKU Range: {item.get('skuRange', 'Not provided')}
+Team Size: {item.get('teamSize', 'Not provided')}
+Current System: {item['currentSystem']}
+
+BIGGEST OPERATIONAL PROBLEM
+{item['biggestProblem']}
+
+ADDITIONAL NOTES
+{item.get('notes', 'None provided')}
+
+APPLICATION DETAILS
+Application ID: {item['applicationId']}
+Submitted At: {item['submittedAt']}
+Status: {item['status']}
+Source: {item['source']}
+"""
+
+    ses.send_email(
+        FromEmailAddress=notification_from_email,
+        Destination={
+            "ToAddresses": [notification_to_email],
+        },
+        ReplyToAddresses=[item["email"]],
+        Content={
+            "Simple": {
+                "Subject": {
+                    "Data": subject,
+                    "Charset": "UTF-8",
+                },
+                "Body": {
+                    "Text": {
+                        "Data": body,
+                        "Charset": "UTF-8",
+                    }
+                },
+            }
+        },
+    )
 
 
 def lambda_handler(event, context):
@@ -152,6 +222,30 @@ def lambda_handler(event, context):
             }
         )
     )
+
+    try:
+        send_internal_notification(item)
+
+        print(
+            json.dumps(
+                {
+                    "level": "INFO",
+                    "event": "beta_notification_sent",
+                    "applicationId": application_id,
+                }
+            )
+        )
+    except Exception as exc:
+        print(
+            json.dumps(
+                {
+                    "level": "ERROR",
+                    "event": "beta_notification_failed",
+                    "applicationId": application_id,
+                    "errorType": type(exc).__name__,
+                }
+            )
+        )
 
     return response(
         201,

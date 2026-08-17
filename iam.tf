@@ -51,3 +51,26 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+
+# Distro'Dex beta application notification email
+resource "aws_iam_role_policy" "lambda_ses_send_email" {
+  name = "${var.project_name}-${var.environment}-lambda-ses-send-email"
+  role = aws_iam_role.lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Action = [
+          "ses:SendEmail"
+        ]
+
+        Resource = "*"
+      }
+    ]
+  })
+}

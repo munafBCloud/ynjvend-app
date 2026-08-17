@@ -15,3 +15,16 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+
+variable "beta_notification_from_email" {
+  description = "Verified SES sender for DistroDex beta notifications"
+  type        = string
+  default     = "itlimited21@gmail.com"
+}
+
+variable "beta_notification_to_email" {
+  description = "Internal recipient for DistroDex beta notifications"
+  type        = string
+  default     = "itlimited21@gmail.com"
+}

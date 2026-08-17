@@ -38,6 +38,8 @@ resource "aws_lambda_function" "create_beta_application" {
   environment {
     variables = {
       BETA_APPLICATIONS_TABLE = aws_dynamodb_table.beta_applications.name
+      NOTIFICATION_FROM_EMAIL = var.beta_notification_from_email
+      NOTIFICATION_TO_EMAIL   = var.beta_notification_to_email
     }
   }
 
