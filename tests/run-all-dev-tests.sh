@@ -117,6 +117,15 @@ echo
 echo ">>> PHASE 2 PASSED"
 echo
 
+echo ">>> PHASE 3: FOUNDING BETA APPLICATION FLOW"
+echo
+
+./tests/run-beta-application-tests.sh
+
+echo
+echo ">>> PHASE 3 PASSED"
+echo
+
 echo "=========================================="
 echo "ALL DISTRODEX DEV REGRESSION TESTS PASSED"
 echo "=========================================="

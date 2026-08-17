@@ -1,3 +1,6 @@
+import { useState } from "react";
+import BetaApplicationModal from "../components/BetaApplicationModal";
+
 const operationalAreas = [
   "Inventory",
   "Customers",
@@ -123,8 +126,11 @@ const workflow = [
 ];
 
 export default function HomePage() {
+  const [betaModalOpen, setBetaModalOpen] = useState(false);
+
   return (
-    <main className="landing-page">
+    <>
+      <main className="landing-page">
       <header className="site-header">
         <a className="brand" href="/" aria-label="Distro'Dex home">
           <div className="brand-mark">
@@ -144,9 +150,13 @@ export default function HomePage() {
           <a href="#beta">Founding Beta</a>
         </nav>
 
-        <a className="header-cta" href="#beta">
+        <button
+          className="header-cta"
+          type="button"
+          onClick={() => setBetaModalOpen(true)}
+        >
           Apply for Beta
-        </a>
+        </button>
       </header>
 
       <section className="hero">
@@ -165,10 +175,14 @@ export default function HomePage() {
           </p>
 
           <div className="hero-actions">
-            <a className="button button-primary animated-cta" href="#beta">
+            <button
+              className="button button-primary animated-cta"
+              type="button"
+              onClick={() => setBetaModalOpen(true)}
+            >
               <span>Apply for Beta Access</span>
               <i aria-hidden="true">→</i>
-            </a>
+            </button>
 
             <a className="button button-secondary secondary-motion" href="#product">
               <span>See How It Works</span>
@@ -884,13 +898,14 @@ export default function HomePage() {
           </div>
 
           <div className="beta-actions">
-            <a
+            <button
               className="button button-primary beta-button animated-cta"
-              href="mailto:beta@distrodex.com"
+              type="button"
+              onClick={() => setBetaModalOpen(true)}
             >
               <span>Apply for Founding Beta</span>
               <i aria-hidden="true">→</i>
-            </a>
+            </button>
 
             <span>No enterprise implementation. No bloated setup.</span>
           </div>
@@ -941,6 +956,12 @@ export default function HomePage() {
           <span>Built for distribution.</span>
         </div>
       </footer>
-    </main>
+      </main>
+
+      <BetaApplicationModal
+        open={betaModalOpen}
+        onClose={() => setBetaModalOpen(false)}
+      />
+    </>
   );
 }
