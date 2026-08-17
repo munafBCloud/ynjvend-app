@@ -297,6 +297,12 @@ resource "aws_apigatewayv2_stage" "default" {
   name        = "$default"
   auto_deploy = true
 
+  route_settings {
+    route_key              = "POST /beta-applications"
+    throttling_burst_limit = 3
+    throttling_rate_limit  = 1
+  }
+
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.api_access_logs.arn
 

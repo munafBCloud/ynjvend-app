@@ -17,6 +17,7 @@ type FormState = {
   currentSystem: string;
   biggestProblem: string;
   notes: string;
+  website: string;
 };
 
 const initialForm: FormState = {
@@ -30,6 +31,7 @@ const initialForm: FormState = {
   currentSystem: "",
   biggestProblem: "",
   notes: "",
+  website: "",
 };
 
 export default function BetaApplicationModal({
@@ -166,6 +168,25 @@ export default function BetaApplicationModal({
             </div>
 
             <form className="beta-application-form" onSubmit={handleSubmit}>
+              <div
+                className="beta-form-honeypot"
+                aria-hidden="true"
+              >
+                <label>
+                  <span>Website</span>
+                  <input
+                    type="text"
+                    name="website"
+                    value={form.website}
+                    onChange={(event) =>
+                      updateField("website", event.target.value)
+                    }
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </label>
+              </div>
+
               <div className="beta-form-grid">
                 <label>
                   <span>Business name *</span>

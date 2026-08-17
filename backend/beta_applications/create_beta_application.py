@@ -98,13 +98,53 @@ Source: {item['source']}
 
 
 def lambda_handler(event, context):
+    raw_body = event.get("body") or ""
+
+    if not isinstance(raw_body, str):
+        return response(400, {"message": "Invalid request body."})
+
+    # Protect the public endpoint from unnecessarily large payloads.
+    if len(raw_body.encode("utf-8")) > 16 * 1024:
+        print(
+            json.dumps(
+                {
+                    "level": "WARNING",
+                    "event": "beta_application_oversized_request",
+                }
+            )
+        )
+        return response(413, {"message": "Request body is too large."})
+
     try:
-        body = json.loads(event.get("body") or "{}")
+        body = json.loads(raw_body)
     except (json.JSONDecodeError, TypeError):
         return response(400, {"message": "Invalid JSON body."})
 
     if not isinstance(body, dict):
         return response(400, {"message": "Request body must be an object."})
+
+    # Honeypot field. Legitimate users never interact with this input.
+    # Return a generic success response so automated bots are not told
+    # why their submission was discarded.
+    honeypot = clean_string(body.get("website"))
+
+    if honeypot:
+        print(
+            json.dumps(
+                {
+                    "level": "WARNING",
+                    "event": "beta_application_honeypot_triggered",
+                }
+            )
+        )
+
+        return response(
+            201,
+            {
+                "message": "Application submitted.",
+                "applicationId": str(uuid.uuid4()),
+            },
+        )
 
     business_name = clean_string(body.get("businessName"))
     contact_name = clean_string(body.get("contactName"))
