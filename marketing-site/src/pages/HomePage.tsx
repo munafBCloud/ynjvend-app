@@ -546,7 +546,96 @@ export default function HomePage() {
                   <span className="feature-index">0{index + 1}</span>
                 </div>
 
-                <h3>{feature.title}</h3>
+                <div
+                className={`feature-visual feature-visual-${index}`}
+                aria-hidden="true"
+              >
+                {index === 0 && (
+                  <div className="feature-inventory-scene">
+                    <div className="feature-inventory-shelf">
+                      <span /><span /><span />
+                      <span /><span /><span />
+                    </div>
+
+                    <div className="feature-inventory-box">
+                      <i />
+                    </div>
+
+                    <div className="feature-inventory-checklist">
+                      <i /><i /><i />
+                    </div>
+                  </div>
+                )}
+
+                {index === 1 && (
+                  <div className="feature-customer-scene">
+                    <div className="feature-customer-profile">
+                      <div className="feature-profile-avatar">
+                        <i />
+                        <span />
+                      </div>
+
+                      <div className="feature-profile-lines">
+                        <i /><i /><i />
+                      </div>
+
+                      <div className="feature-profile-actions">
+                        <span>⌕</span>
+                        <span>✉</span>
+                        <span>⌖</span>
+                      </div>
+                    </div>
+
+                    <div className="feature-customer-chart">
+                      <i /><i /><i /><i /><i />
+                    </div>
+                  </div>
+                )}
+
+                {index === 2 && (
+                  <div className="feature-orders-scene">
+                    <div className="feature-orders-screen">
+                      <div className="feature-orders-topbar">
+                        <i /><i /><i />
+                      </div>
+
+                      <div className="feature-orders-cart">⌑</div>
+
+                      <div className="feature-orders-lines">
+                        <span /><span /><span />
+                        <span /><span /><span />
+                      </div>
+                    </div>
+
+                    <div className="feature-order-packages">
+                      <span /><span /><span />
+                    </div>
+                  </div>
+                )}
+
+                {index === 3 && (
+                  <div className="feature-invoice-scene">
+                    <div className="feature-invoice-document">
+                      <div className="feature-invoice-title">INVOICE</div>
+
+                      <div className="feature-invoice-money">$</div>
+
+                      <div className="feature-invoice-lines">
+                        <i /><i /><i />
+                      </div>
+
+                      <div className="feature-invoice-table">
+                        <span /><span /><span />
+                        <span /><span /><span />
+                      </div>
+                    </div>
+
+                    <div className="feature-invoice-check">✓</div>
+                  </div>
+                )}
+              </div>
+
+              <h3>{feature.title}</h3>
                 <p>{feature.description}</p>
                 <small>{feature.detail}</small>
 
@@ -646,8 +735,8 @@ export default function HomePage() {
       </section>
 
       <section className="distribution-section">
-        <div className="section-shell distribution-inner">
-          <div>
+        <div className="section-shell distribution-inner distribution-inner-visual">
+          <div className="distribution-heading">
             <p className="section-kicker">BUILT FOR INDEPENDENT DISTRIBUTION</p>
 
             <h2>
@@ -662,15 +751,122 @@ export default function HomePage() {
               complexity but do not need a massive ERP implementation just to
               gain control of their business.
             </p>
+          </div>
 
-            <div className="distribution-tags">
-              <span>Local distribution</span>
-              <span>Wholesale operations</span>
-              <span>Multi-user teams</span>
-              <span>Growing catalogs</span>
-              <span>Repeat customers</span>
-              <span>Mobile workflows</span>
+          <div className="distribution-visual" aria-hidden="true">
+            <div className="distribution-flow-node distribution-flow-source">
+              <span className="distribution-node-label">OPERATIONS</span>
+
+              <div className="distribution-warehouse">
+                <div className="distribution-warehouse-roof" />
+
+                <div className="distribution-warehouse-body">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+
+              <strong>Independent Distribution</strong>
+
+              <div className="distribution-mini-tags">
+                <span>Local distribution</span>
+                <span>Growing catalogs</span>
+              </div>
             </div>
+
+            <div className="distribution-flow-line distribution-flow-line-left">
+              <span />
+              <i />
+            </div>
+
+            <div className="distribution-flow-node distribution-flow-core">
+              <div className="distribution-core-glow" />
+
+              <span className="distribution-node-label distribution-node-label-active">
+                DISTRO'DEX
+              </span>
+
+              <div className="distribution-dashboard-mini">
+                <div className="distribution-dashboard-top">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+
+                <div className="distribution-dashboard-body">
+                  <div className="distribution-dashboard-sidebar">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+
+                  <div className="distribution-dashboard-content">
+                    <div className="distribution-dashboard-metric">
+                      <span />
+                      <strong />
+                    </div>
+
+                    <div className="distribution-dashboard-bars">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </div>
+
+                    <div className="distribution-dashboard-rows">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <strong>One Operational System</strong>
+
+              <div className="distribution-core-status">
+                <i />
+                Inventory · Customers · Orders
+              </div>
+            </div>
+
+            <div className="distribution-flow-line distribution-flow-line-right">
+              <span />
+              <i />
+            </div>
+
+            <div className="distribution-flow-node distribution-flow-destination">
+              <span className="distribution-node-label">FULFILLMENT</span>
+
+              <div className="distribution-store">
+                <div className="distribution-store-awning">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </div>
+
+                <div className="distribution-store-body">
+                  <span />
+                  <span />
+                </div>
+              </div>
+
+              <strong>Customer Operations</strong>
+
+              <div className="distribution-mini-tags">
+                <span>Repeat customers</span>
+                <span>Mobile workflows</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="distribution-capabilities">
+            <span>Wholesale operations</span>
+            <span>Multi-user teams</span>
+            <span>Inventory visibility</span>
+            <span>Connected workflows</span>
           </div>
         </div>
       </section>
@@ -685,16 +881,126 @@ export default function HomePage() {
           </h2>
         </div>
 
-        <div className="workflow-grid">
+        <div className="workflow-grid workflow-grid-visual">
           {workflow.map((step, index) => (
-            <article className="workflow-step" key={step.number}>
+            <article
+              className={`workflow-step workflow-step-visual workflow-step-${index}`}
+              key={step.number}
+            >
               <div className="workflow-heading">
                 <span>{step.number}</span>
                 {index < workflow.length - 1 && <i />}
               </div>
 
+              <div
+                className={`workflow-graphic workflow-graphic-${index}`}
+                aria-hidden="true"
+              >
+                {index === 0 && (
+                  <>
+                    <div className="workflow-receive-box">
+                      <span />
+                      <i />
+                    </div>
+
+                    <div className="workflow-scanner">
+                      <span />
+                      <i />
+                    </div>
+                  </>
+                )}
+
+                {index === 1 && (
+                  <>
+                    <div className="workflow-shelf">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+
+                    <div className="workflow-checklist">
+                      <i />
+                      <i />
+                      <i />
+                    </div>
+                  </>
+                )}
+
+                {index === 2 && (
+                  <>
+                    <div className="workflow-customer-avatar">
+                      <i />
+                      <span />
+                    </div>
+
+                    <div className="workflow-customer-card">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </>
+                )}
+
+                {index === 3 && (
+                  <>
+                    <div className="workflow-order-sheet">
+                      <i />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+
+                    <div className="workflow-order-boxes">
+                      <i />
+                      <i />
+                      <i />
+                    </div>
+                  </>
+                )}
+
+                {index === 4 && (
+                  <>
+                    <div className="workflow-truck">
+                      <div className="workflow-truck-box">
+                        <i />
+                      </div>
+
+                      <div className="workflow-truck-cab" />
+
+                      <span className="workflow-wheel workflow-wheel-left" />
+                      <span className="workflow-wheel workflow-wheel-right" />
+                    </div>
+
+                    <div className="workflow-speed-lines">
+                      <i />
+                      <i />
+                      <i />
+                    </div>
+                  </>
+                )}
+
+                {index === 5 && (
+                  <>
+                    <div className="workflow-invoice-sheet">
+                      <div className="workflow-invoice-header">
+                        <i />
+                        <span>$</span>
+                      </div>
+
+                      <i />
+                      <i />
+                      <i />
+
+                      <div className="workflow-invoice-total" />
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="workflow-status">
                 <span className={`workflow-status-dot workflow-status-${index}`} />
+
                 <small>
                   {index === 0 && "Inbound"}
                   {index === 1 && "Available"}
@@ -708,6 +1014,15 @@ export default function HomePage() {
               <h3>{step.title}</h3>
               <p>{step.description}</p>
             </article>
+          ))}
+        </div>
+
+        <div className="workflow-progress-rail" aria-hidden="true">
+          {workflow.map((step, index) => (
+            <span
+              className={`workflow-progress-node workflow-progress-node-${index}`}
+              key={step.number}
+            />
           ))}
         </div>
       </section>

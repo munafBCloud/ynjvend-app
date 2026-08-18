@@ -4387,3 +4387,2219 @@ button:focus-visible {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+
+/* =========================================================
+   INDEPENDENT DISTRIBUTION — OPERATIONS FLOW
+   ========================================================= */
+
+.distribution-inner-visual {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.92fr);
+  row-gap: 64px;
+}
+
+.distribution-heading {
+  min-width: 0;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN VISUAL
+   --------------------------------------------------------- */
+
+.distribution-visual {
+  position: relative;
+  grid-column: 1 / -1;
+
+  display: grid;
+  grid-template-columns:
+    minmax(210px, 0.9fr)
+    minmax(70px, 0.35fr)
+    minmax(280px, 1.15fr)
+    minmax(70px, 0.35fr)
+    minmax(210px, 0.9fr);
+  align-items: center;
+
+  min-height: 340px;
+  padding: 38px 34px;
+
+  overflow: hidden;
+
+  border: 1px solid #1d323e;
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px
+    ),
+    #08151d;
+
+  background-size: 32px 32px;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 24px 55px rgba(0, 0, 0, 0.16);
+}
+
+.distribution-visual::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(22, 112, 177, 0.08),
+      transparent 35%
+    );
+}
+
+
+/* ---------------------------------------------------------
+   FLOW NODES
+   --------------------------------------------------------- */
+
+.distribution-flow-node {
+  position: relative;
+  z-index: 2;
+
+  min-width: 0;
+
+  text-align: center;
+}
+
+.distribution-node-label {
+  display: inline-block;
+
+  margin-bottom: 18px;
+
+  color: #617581;
+
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.distribution-node-label-active {
+  color: var(--orange);
+}
+
+.distribution-flow-node > strong {
+  display: block;
+
+  margin-top: 18px;
+
+  color: #dce5e9;
+
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.distribution-mini-tags {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  margin-top: 11px;
+}
+
+.distribution-mini-tags span,
+.distribution-capabilities span {
+  border: 1px solid #223844;
+  border-radius: 4px;
+
+  background: #0b1a23;
+
+  color: #71838d;
+
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.distribution-mini-tags span {
+  padding: 6px 8px;
+}
+
+
+/* ---------------------------------------------------------
+   WAREHOUSE
+   --------------------------------------------------------- */
+
+.distribution-warehouse {
+  width: 126px;
+  height: 92px;
+  margin: 0 auto;
+
+  filter: drop-shadow(0 15px 18px rgba(0, 0, 0, 0.25));
+}
+
+.distribution-warehouse-roof {
+  width: 112px;
+  height: 26px;
+  margin: 0 auto -1px;
+
+  border: 1px solid #39515e;
+
+  background: #10242f;
+
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.distribution-warehouse-body {
+  width: 126px;
+  height: 67px;
+  padding: 15px 13px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  border: 1px solid #39515e;
+  border-radius: 3px;
+
+  background: #0d202a;
+}
+
+.distribution-warehouse-body span {
+  border: 1px solid #304752;
+
+  background:
+    linear-gradient(
+      to bottom,
+      #172e39 0 30%,
+      #0b1921 30% 36%,
+      #172e39 36% 66%,
+      #0b1921 66% 72%,
+      #172e39 72%
+    );
+}
+
+
+/* ---------------------------------------------------------
+   DISTRODEX DASHBOARD CORE
+   --------------------------------------------------------- */
+
+.distribution-flow-core {
+  padding: 10px 0;
+}
+
+.distribution-core-glow {
+  position: absolute;
+  z-index: -1;
+  top: 40px;
+  left: 50%;
+
+  width: 230px;
+  height: 160px;
+
+  background: rgba(22, 112, 177, 0.1);
+
+  filter: blur(45px);
+
+  transform: translateX(-50%);
+}
+
+.distribution-dashboard-mini {
+  width: min(100%, 270px);
+  height: 150px;
+  margin: 0 auto;
+
+  overflow: hidden;
+
+  border: 1px solid #31505f;
+  border-radius: 7px;
+
+  background: #091821;
+
+  box-shadow:
+    0 20px 35px rgba(0, 0, 0, 0.32),
+    0 0 30px rgba(22, 112, 177, 0.08);
+}
+
+.distribution-dashboard-top {
+  height: 22px;
+  padding: 0 9px;
+
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  border-bottom: 1px solid #213844;
+
+  background: #10232d;
+}
+
+.distribution-dashboard-top span {
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #49606c;
+}
+
+.distribution-dashboard-top span:first-child {
+  background: var(--orange);
+}
+
+.distribution-dashboard-body {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+
+  height: calc(100% - 22px);
+}
+
+.distribution-dashboard-sidebar {
+  padding-top: 16px;
+
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+
+  border-right: 1px solid #1c333e;
+
+  background: #0b1c25;
+}
+
+.distribution-dashboard-sidebar i {
+  width: 14px;
+  height: 3px;
+
+  border-radius: 2px;
+
+  background: #314956;
+}
+
+.distribution-dashboard-sidebar i:first-child {
+  background: var(--orange);
+}
+
+.distribution-dashboard-content {
+  padding: 16px;
+}
+
+.distribution-dashboard-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.distribution-dashboard-metric span {
+  width: 52px;
+  height: 5px;
+
+  background: #334b57;
+}
+
+.distribution-dashboard-metric strong {
+  width: 28px;
+  height: 9px;
+
+  background: #2b7da8;
+}
+
+.distribution-dashboard-bars {
+  height: 46px;
+  margin-top: 15px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+
+  border-bottom: 1px solid #203742;
+}
+
+.distribution-dashboard-bars i {
+  flex: 1;
+
+  background: #235e7c;
+}
+
+.distribution-dashboard-bars i:nth-child(1) {
+  height: 40%;
+}
+
+.distribution-dashboard-bars i:nth-child(2) {
+  height: 68%;
+}
+
+.distribution-dashboard-bars i:nth-child(3) {
+  height: 52%;
+
+  background: var(--orange);
+}
+
+.distribution-dashboard-bars i:nth-child(4) {
+  height: 84%;
+}
+
+.distribution-dashboard-rows {
+  margin-top: 11px;
+
+  display: grid;
+  gap: 6px;
+}
+
+.distribution-dashboard-rows span {
+  height: 3px;
+
+  background: #233c48;
+}
+
+.distribution-dashboard-rows span:nth-child(2) {
+  width: 82%;
+}
+
+.distribution-dashboard-rows span:nth-child(3) {
+  width: 64%;
+}
+
+.distribution-core-status {
+  margin-top: 9px;
+
+  color: #607680;
+
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.distribution-core-status i {
+  display: inline-block;
+
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+
+  border-radius: 50%;
+
+  background: #43c985;
+
+  box-shadow: 0 0 7px rgba(67, 201, 133, 0.4);
+}
+
+
+/* ---------------------------------------------------------
+   STOREFRONT
+   --------------------------------------------------------- */
+
+.distribution-store {
+  width: 118px;
+  height: 92px;
+  margin: 0 auto;
+
+  filter: drop-shadow(0 15px 18px rgba(0, 0, 0, 0.25));
+}
+
+.distribution-store-awning {
+  height: 27px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  overflow: hidden;
+
+  border: 1px solid #39515e;
+  border-radius: 5px 5px 1px 1px;
+}
+
+.distribution-store-awning i:nth-child(odd) {
+  background: #1e5f83;
+}
+
+.distribution-store-awning i:nth-child(even) {
+  background: #102d3d;
+}
+
+.distribution-store-body {
+  height: 65px;
+  padding: 13px;
+
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 10px;
+
+  border: 1px solid #39515e;
+  border-top: 0;
+
+  background: #0d202a;
+}
+
+.distribution-store-body span {
+  border: 1px solid #304752;
+
+  background: #142c37;
+}
+
+.distribution-store-body span:first-child {
+  background:
+    linear-gradient(
+      to bottom,
+      #173542 0 46%,
+      #0b1921 46% 53%,
+      #173542 53%
+    );
+}
+
+
+/* ---------------------------------------------------------
+   FLOW CONNECTORS
+   --------------------------------------------------------- */
+
+.distribution-flow-line {
+  position: relative;
+  z-index: 1;
+
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #29424f,
+      #327da4
+    );
+}
+
+.distribution-flow-line span {
+  position: absolute;
+  top: -2px;
+  right: 0;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #3295c8;
+
+  box-shadow: 0 0 9px rgba(50, 149, 200, 0.5);
+}
+
+.distribution-flow-line i {
+  position: absolute;
+  top: -4px;
+  right: -1px;
+
+  width: 8px;
+  height: 8px;
+
+  border-top: 1px solid #3295c8;
+  border-right: 1px solid #3295c8;
+
+  transform: rotate(45deg);
+}
+
+.distribution-flow-line-left {
+  background:
+    linear-gradient(
+      90deg,
+      #29424f,
+      var(--orange)
+    );
+}
+
+.distribution-flow-line-left span {
+  background: var(--orange);
+
+  box-shadow: 0 0 9px rgba(255, 77, 10, 0.45);
+}
+
+.distribution-flow-line-left i {
+  border-color: var(--orange);
+}
+
+
+/* ---------------------------------------------------------
+   CAPABILITY STRIP
+   --------------------------------------------------------- */
+
+.distribution-capabilities {
+  grid-column: 1 / -1;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  margin-top: -38px;
+}
+
+.distribution-capabilities span {
+  padding: 11px 12px;
+
+  text-align: center;
+}
+
+
+/* ---------------------------------------------------------
+   TABLET
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .distribution-inner-visual {
+    grid-template-columns: 1fr;
+  }
+
+  .distribution-visual {
+    grid-column: 1;
+
+    grid-template-columns: 1fr;
+    gap: 25px;
+
+    padding: 36px 22px;
+  }
+
+  .distribution-flow-line {
+    width: 1px;
+    height: 34px;
+    margin: 0 auto;
+
+    background:
+      linear-gradient(
+        to bottom,
+        #29424f,
+        var(--orange)
+      );
+  }
+
+  .distribution-flow-line span {
+    top: auto;
+    right: -2px;
+    bottom: 0;
+  }
+
+  .distribution-flow-line i {
+    top: auto;
+    right: -4px;
+    bottom: -1px;
+
+    transform: rotate(135deg);
+  }
+
+  .distribution-capabilities {
+    grid-column: 1;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    margin-top: -38px;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 650px) {
+  .distribution-inner-visual {
+    row-gap: 36px;
+  }
+
+  .distribution-visual {
+    min-height: 0;
+    padding: 30px 16px;
+
+    background-size: 24px 24px;
+  }
+
+  .distribution-dashboard-mini {
+    width: min(100%, 250px);
+  }
+
+  .distribution-capabilities {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+
+    margin-top: -16px;
+  }
+
+  .distribution-capabilities span {
+    padding: 9px 7px;
+
+    font-size: 0.42rem;
+  }
+}
+
+
+/* =========================================================
+   WORKFLOW — RECEIVING TO REVENUE VISUAL SYSTEM
+   ========================================================= */
+
+.workflow-grid-visual {
+  position: relative;
+}
+
+.workflow-step-visual {
+  position: relative;
+
+  min-width: 0;
+}
+
+.workflow-step-visual .workflow-heading {
+  margin-bottom: 14px;
+}
+
+
+/* ---------------------------------------------------------
+   GRAPHIC FRAME
+   --------------------------------------------------------- */
+
+.workflow-graphic {
+  position: relative;
+
+  height: 165px;
+  margin-bottom: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border: 1px solid #1f3541;
+  border-radius: 7px;
+
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(26, 107, 158, 0.055),
+      transparent 65%
+    ),
+    #08151d;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.018),
+    0 14px 28px rgba(0, 0, 0, 0.13);
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.workflow-step-visual:hover .workflow-graphic {
+  border-color: #34505e;
+
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(34, 123, 177, 0.085),
+      transparent 65%
+    ),
+    #091820;
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 20px 34px rgba(0, 0, 0, 0.18);
+}
+
+
+/* =========================================================
+   01 — RECEIVE
+   ========================================================= */
+
+.workflow-receive-box {
+  position: relative;
+
+  width: 78px;
+  height: 60px;
+
+  border: 1px solid #415966;
+
+  background: #132832;
+
+  transform: perspective(140px) rotateX(3deg);
+}
+
+.workflow-receive-box::before {
+  content: "";
+
+  position: absolute;
+  top: -16px;
+  left: -1px;
+
+  width: 78px;
+  height: 16px;
+
+  border: 1px solid #415966;
+
+  background: #19333e;
+
+  clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
+}
+
+.workflow-receive-box span {
+  position: absolute;
+  top: -16px;
+  left: 34px;
+
+  width: 10px;
+  height: 76px;
+
+  background: var(--orange);
+
+  opacity: 0.9;
+}
+
+.workflow-receive-box i {
+  position: absolute;
+  right: 11px;
+  top: 16px;
+
+  width: 19px;
+  height: 12px;
+
+  border: 1px solid #627984;
+}
+
+.workflow-scanner {
+  position: absolute;
+  right: 25px;
+  top: 35px;
+
+  width: 27px;
+  height: 50px;
+
+  border: 2px solid #526b77;
+  border-radius: 6px 6px 9px 9px;
+
+  background: #101f28;
+
+  transform: rotate(14deg);
+}
+
+.workflow-scanner span {
+  position: absolute;
+  top: 5px;
+  left: 4px;
+
+  width: 15px;
+  height: 12px;
+
+  border: 1px solid #76909b;
+
+  background: #1b3540;
+}
+
+.workflow-scanner i {
+  position: absolute;
+  left: -24px;
+  top: 16px;
+
+  width: 30px;
+  height: 1px;
+
+  background: var(--orange);
+
+  box-shadow: 0 0 8px rgba(255, 77, 10, 0.55);
+}
+
+
+/* =========================================================
+   02 — INVENTORY
+   ========================================================= */
+
+.workflow-shelf {
+  position: relative;
+
+  width: 88px;
+  height: 90px;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+
+  padding: 12px 9px;
+
+  border-left: 3px solid #4b626e;
+  border-right: 3px solid #4b626e;
+}
+
+.workflow-shelf::before,
+.workflow-shelf::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+
+  width: 100%;
+  height: 3px;
+
+  background: #4b626e;
+}
+
+.workflow-shelf::before {
+  top: 4px;
+}
+
+.workflow-shelf::after {
+  bottom: 4px;
+}
+
+.workflow-shelf span {
+  border: 1px solid #405762;
+
+  background:
+    linear-gradient(
+      to bottom,
+      #1b3540 0 32%,
+      #101f28 32% 38%,
+      #1b3540 38%
+    );
+}
+
+.workflow-checklist {
+  position: absolute;
+  right: 18px;
+  bottom: 24px;
+
+  width: 46px;
+  height: 57px;
+
+  padding: 12px 8px;
+
+  display: grid;
+  gap: 7px;
+
+  border: 2px solid #1687ff;
+  border-radius: 5px;
+
+  background: #0d1c25;
+
+  box-shadow: 0 0 18px rgba(22, 135, 255, 0.1);
+}
+
+.workflow-checklist i {
+  position: relative;
+
+  height: 2px;
+
+  background: #2b6991;
+}
+
+.workflow-checklist i::before {
+  content: "✓";
+
+  position: absolute;
+  left: -7px;
+  top: -7px;
+
+  color: #1687ff;
+
+  font-style: normal;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   03 — CUSTOMER
+   ========================================================= */
+
+.workflow-customer-avatar {
+  position: relative;
+
+  width: 72px;
+  height: 72px;
+
+  border: 2px solid #58707d;
+  border-radius: 50%;
+}
+
+.workflow-customer-avatar i {
+  position: absolute;
+  top: 17px;
+  left: 50%;
+
+  width: 21px;
+  height: 21px;
+
+  border-radius: 50%;
+
+  background: #5aaeff;
+
+  transform: translateX(-50%);
+}
+
+.workflow-customer-avatar span {
+  position: absolute;
+  left: 50%;
+  bottom: 13px;
+
+  width: 38px;
+  height: 20px;
+
+  border-radius: 24px 24px 7px 7px;
+
+  background: #1687ff;
+
+  transform: translateX(-50%);
+}
+
+.workflow-customer-card {
+  width: 83px;
+  height: 68px;
+  margin-left: -6px;
+  padding: 17px 13px;
+
+  display: grid;
+  gap: 8px;
+
+  border: 2px solid #3b5360;
+  border-radius: 5px;
+
+  background: #101f28;
+}
+
+.workflow-customer-card span {
+  height: 3px;
+
+  background: #455e6a;
+}
+
+.workflow-customer-card span:first-child {
+  width: 60%;
+
+  background: #4fa5ff;
+}
+
+.workflow-customer-card span:last-child {
+  width: 72%;
+}
+
+
+/* =========================================================
+   04 — ORDER
+   ========================================================= */
+
+.workflow-order-sheet {
+  position: relative;
+
+  width: 76px;
+  height: 94px;
+  padding: 27px 13px 10px;
+
+  display: grid;
+  gap: 10px;
+
+  border: 2px solid #566f7a;
+  border-radius: 5px;
+
+  background: #101f28;
+}
+
+.workflow-order-sheet::before {
+  content: "";
+
+  position: absolute;
+  top: -8px;
+  left: 50%;
+
+  width: 34px;
+  height: 15px;
+
+  border-radius: 4px;
+
+  background: #e3a825;
+
+  transform: translateX(-50%);
+}
+
+.workflow-order-sheet i {
+  position: absolute;
+  top: 20px;
+  left: 26px;
+
+  width: 25px;
+  height: 19px;
+
+  border-left: 2px solid #a9bbc3;
+  border-bottom: 2px solid #a9bbc3;
+
+  transform: skew(-7deg);
+}
+
+.workflow-order-sheet span {
+  height: 3px;
+
+  background: #536974;
+}
+
+.workflow-order-boxes {
+  position: absolute;
+  right: 18px;
+  bottom: 25px;
+
+  width: 55px;
+  height: 58px;
+}
+
+.workflow-order-boxes i {
+  position: absolute;
+
+  width: 27px;
+  height: 24px;
+
+  border: 1px solid #415964;
+
+  background: #182f3a;
+}
+
+.workflow-order-boxes i:nth-child(1) {
+  left: 0;
+  bottom: 0;
+}
+
+.workflow-order-boxes i:nth-child(2) {
+  right: 0;
+  bottom: 0;
+}
+
+.workflow-order-boxes i:nth-child(3) {
+  right: 7px;
+  top: 4px;
+}
+
+
+/* =========================================================
+   05 — FULFILL
+   ========================================================= */
+
+.workflow-truck {
+  position: relative;
+
+  width: 120px;
+  height: 68px;
+}
+
+.workflow-truck-box {
+  position: absolute;
+  left: 0;
+  bottom: 13px;
+
+  width: 72px;
+  height: 49px;
+
+  border: 2px solid #536d78;
+
+  background: #132832;
+}
+
+.workflow-truck-box i {
+  position: absolute;
+  top: 14px;
+  left: 26px;
+
+  width: 25px;
+  height: 25px;
+
+  background:
+    linear-gradient(
+      30deg,
+      #ff986c 0 49%,
+      #ffc09d 50%
+    );
+
+  clip-path: polygon(
+    50% 0,
+    100% 25%,
+    100% 75%,
+    50% 100%,
+    0 75%,
+    0 25%
+  );
+}
+
+.workflow-truck-cab {
+  position: absolute;
+  right: 0;
+  bottom: 13px;
+
+  width: 45px;
+  height: 40px;
+
+  border: 2px solid #536d78;
+  border-left: 0;
+  border-radius: 0 8px 3px 0;
+
+  background: #1a303a;
+}
+
+.workflow-truck-cab::before {
+  content: "";
+
+  position: absolute;
+  top: 6px;
+  right: 6px;
+
+  width: 20px;
+  height: 12px;
+
+  border: 1px solid #64808b;
+
+  background: #223f4c;
+}
+
+.workflow-wheel {
+  position: absolute;
+  bottom: 3px;
+
+  width: 17px;
+  height: 17px;
+
+  border: 3px solid #4e626c;
+  border-radius: 50%;
+
+  background: #08151d;
+}
+
+.workflow-wheel-left {
+  left: 21px;
+}
+
+.workflow-wheel-right {
+  right: 12px;
+}
+
+.workflow-speed-lines {
+  position: absolute;
+  left: 12px;
+  top: 55px;
+
+  display: grid;
+  gap: 5px;
+}
+
+.workflow-speed-lines i {
+  height: 2px;
+
+  background: #5a707b;
+}
+
+.workflow-speed-lines i:nth-child(1) {
+  width: 27px;
+}
+
+.workflow-speed-lines i:nth-child(2) {
+  width: 18px;
+}
+
+.workflow-speed-lines i:nth-child(3) {
+  width: 10px;
+}
+
+
+/* =========================================================
+   06 — INVOICE
+   ========================================================= */
+
+.workflow-invoice-sheet {
+  position: relative;
+
+  width: 84px;
+  height: 108px;
+
+  padding: 18px 13px;
+
+  display: grid;
+  align-content: start;
+  gap: 10px;
+
+  border: 2px solid #526c77;
+  border-radius: 4px;
+
+  background: #101f28;
+}
+
+.workflow-invoice-sheet::after {
+  content: "";
+
+  position: absolute;
+  top: -2px;
+  right: -2px;
+
+  width: 22px;
+  height: 22px;
+
+  border-left: 2px solid #526c77;
+  border-bottom: 2px solid #526c77;
+
+  background: #08151d;
+
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.workflow-invoice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.workflow-invoice-header i {
+  width: 34px;
+  height: 4px;
+
+  background: #637b86;
+}
+
+.workflow-invoice-header span {
+  width: 25px;
+  height: 25px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #43c985;
+  border-radius: 50%;
+
+  color: #43c985;
+
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.workflow-invoice-sheet > i {
+  height: 3px;
+
+  background: #415965;
+}
+
+.workflow-invoice-sheet > i:nth-of-type(2) {
+  width: 78%;
+}
+
+.workflow-invoice-total {
+  height: 14px;
+  margin-top: 5px;
+
+  border-top: 1px solid #415965;
+  border-bottom: 1px solid #415965;
+}
+
+
+/* =========================================================
+   CONNECTED PROGRESS RAIL
+   ========================================================= */
+
+.workflow-progress-rail {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: center;
+
+  margin: 30px 6% 0;
+}
+
+.workflow-progress-rail::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+
+  height: 1px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--orange),
+      #1687ff 27%,
+      #1687ff 43%,
+      #d8a83b 66%,
+      #d8a83b 82%,
+      #43c985
+    );
+
+  opacity: 0.55;
+}
+
+.workflow-progress-node {
+  position: relative;
+  z-index: 1;
+
+  width: 10px;
+  height: 10px;
+
+  justify-self: center;
+
+  border-radius: 50%;
+
+  background: #60737d;
+
+  box-shadow: 0 0 11px rgba(96, 115, 125, 0.25);
+}
+
+.workflow-progress-node-0 {
+  background: var(--orange);
+
+  box-shadow: 0 0 12px rgba(255, 77, 10, 0.55);
+}
+
+.workflow-progress-node-1,
+.workflow-progress-node-2 {
+  background: #1687ff;
+
+  box-shadow: 0 0 12px rgba(22, 135, 255, 0.45);
+}
+
+.workflow-progress-node-3,
+.workflow-progress-node-4 {
+  background: #d8a83b;
+
+  box-shadow: 0 0 12px rgba(216, 168, 59, 0.4);
+}
+
+.workflow-progress-node-5 {
+  background: #43c985;
+
+  box-shadow: 0 0 12px rgba(67, 201, 133, 0.5);
+}
+
+
+/* =========================================================
+   DESKTOP CONNECTOR ARROWS
+   ========================================================= */
+
+@media (min-width: 901px) {
+  .workflow-step-visual:not(:last-child) .workflow-graphic::after {
+    content: "→";
+
+    position: absolute;
+    z-index: 5;
+    right: -27px;
+    top: 50%;
+
+    color: #4d6470;
+
+    font-size: 1rem;
+    font-weight: 600;
+
+    transform: translateY(-50%);
+  }
+
+  .workflow-grid-visual {
+    overflow: visible;
+  }
+
+  .workflow-step-visual {
+    overflow: visible;
+  }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .workflow-grid-visual {
+    gap: 12px;
+  }
+
+  .workflow-graphic {
+    height: 155px;
+  }
+
+  .workflow-progress-rail {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 650px) {
+  .workflow-step-visual {
+    padding-bottom: 6px;
+  }
+
+  .workflow-graphic {
+    height: 150px;
+    margin-top: 4px;
+    margin-bottom: 16px;
+  }
+
+  .workflow-step-visual .workflow-heading {
+    margin-bottom: 10px;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-graphic {
+    transition: none;
+  }
+}
+
+
+/* =========================================================
+   CORE PLATFORM CARDS — PRODUCT VISUALS
+   ========================================================= */
+
+.feature-card {
+  overflow: hidden;
+}
+
+.feature-visual {
+  position: relative;
+
+  height: 190px;
+  margin: 26px 0 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(22, 135, 255, 0.055),
+      transparent 65%
+    );
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
+}
+
+.feature-card:hover .feature-visual {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(22, 135, 255, 0.085),
+      transparent 65%
+    );
+}
+
+.feature-visual::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.018),
+      transparent
+    );
+
+  transform: translateX(-100%);
+
+  transition: transform 600ms ease;
+}
+
+.feature-card:hover .feature-visual::after {
+  transform: translateX(100%);
+}
+
+
+/* =========================================================
+   01 — INVENTORY
+   ========================================================= */
+
+.feature-inventory-scene {
+  position: relative;
+
+  width: 260px;
+  height: 150px;
+}
+
+.feature-inventory-shelf {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+
+  width: 145px;
+  height: 125px;
+  padding: 15px 12px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 11px;
+
+  border: 3px solid #405865;
+
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 48%,
+      #405865 48%,
+      #405865 51%,
+      transparent 51%
+    );
+}
+
+.feature-inventory-shelf span {
+  position: relative;
+
+  border: 1px solid #425966;
+
+  background: #1b3440;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.feature-inventory-shelf span:nth-child(3) {
+  background: #9d4924;
+}
+
+.feature-inventory-shelf span:nth-child(3)::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 43%;
+
+  width: 14%;
+  height: 100%;
+
+  background: var(--orange);
+}
+
+.feature-inventory-box {
+  position: absolute;
+  left: 70px;
+  bottom: 0;
+
+  width: 67px;
+  height: 55px;
+
+  border: 1px solid #536d79;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2e4855,
+      #172e39
+    );
+
+  box-shadow: 0 12px 18px rgba(0,0,0,0.28);
+}
+
+.feature-inventory-box::before {
+  content: "";
+
+  position: absolute;
+  top: -13px;
+  left: -1px;
+
+  width: 67px;
+  height: 13px;
+
+  border: 1px solid #536d79;
+
+  background: #3a5663;
+
+  clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%);
+}
+
+.feature-inventory-box i {
+  position: absolute;
+  right: 7px;
+  bottom: 8px;
+
+  width: 29px;
+  height: 10px;
+
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #9eb0b9 0 1px,
+      transparent 1px 3px
+    );
+}
+
+.feature-inventory-checklist {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+
+  width: 72px;
+  height: 85px;
+  padding: 22px 12px 10px;
+
+  display: grid;
+  gap: 13px;
+
+  border: 2px solid #607783;
+  border-radius: 5px;
+
+  background: #10212a;
+
+  box-shadow: 0 14px 25px rgba(0,0,0,0.3);
+}
+
+.feature-inventory-checklist::before {
+  content: "";
+
+  position: absolute;
+  top: -9px;
+  left: 50%;
+
+  width: 29px;
+  height: 16px;
+
+  border: 2px solid #738a95;
+  border-radius: 6px 6px 3px 3px;
+
+  background: #263c47;
+
+  transform: translateX(-50%);
+}
+
+.feature-inventory-checklist i {
+  position: relative;
+
+  height: 2px;
+
+  background: #46606c;
+}
+
+.feature-inventory-checklist i::before {
+  content: "✓";
+
+  position: absolute;
+  left: -10px;
+  top: -8px;
+
+  color: #43c985;
+
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   02 — CUSTOMERS
+   ========================================================= */
+
+.feature-customer-scene {
+  position: relative;
+
+  width: 275px;
+  height: 150px;
+}
+
+.feature-customer-profile {
+  position: absolute;
+  left: 7px;
+  top: 6px;
+
+  width: 175px;
+  height: 112px;
+
+  display: grid;
+  grid-template-columns: 62px 1fr 29px;
+  align-items: center;
+
+  border: 2px solid #4c6571;
+  border-radius: 6px;
+
+  background: #0f2029;
+}
+
+.feature-profile-avatar {
+  position: relative;
+
+  width: 62px;
+  height: 90px;
+}
+
+.feature-profile-avatar i {
+  position: absolute;
+  left: 50%;
+  top: 17px;
+
+  width: 27px;
+  height: 27px;
+
+  border-radius: 50%;
+
+  background: #2f8ee8;
+
+  transform: translateX(-50%);
+}
+
+.feature-profile-avatar span {
+  position: absolute;
+  left: 50%;
+  bottom: 17px;
+
+  width: 46px;
+  height: 29px;
+
+  border-radius: 26px 26px 7px 7px;
+
+  background: #1687ff;
+
+  transform: translateX(-50%);
+}
+
+.feature-profile-lines {
+  display: grid;
+  gap: 11px;
+
+  padding-right: 8px;
+}
+
+.feature-profile-lines i {
+  height: 4px;
+
+  border-radius: 3px;
+
+  background: #425b68;
+}
+
+.feature-profile-lines i:nth-child(1) {
+  width: 72%;
+}
+
+.feature-profile-lines i:nth-child(2) {
+  width: 90%;
+}
+
+.feature-profile-lines i:nth-child(3) {
+  width: 58%;
+}
+
+.feature-profile-actions {
+  height: 100%;
+
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  align-items: center;
+
+  border-left: 1px solid #263e49;
+}
+
+.feature-profile-actions span {
+  width: 21px;
+  height: 21px;
+  margin: auto;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #3f5965;
+  border-radius: 4px;
+
+  color: #a6bac3;
+
+  font-size: 0.58rem;
+}
+
+.feature-customer-chart {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  width: 130px;
+  height: 67px;
+  padding: 12px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+
+  border: 1px solid #3c5662;
+  border-radius: 6px;
+
+  background: #0b1b24;
+
+  box-shadow: 0 12px 22px rgba(0,0,0,0.25);
+}
+
+.feature-customer-chart::before {
+  content: "";
+
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 12px;
+
+  height: 1px;
+
+  background: #2c424e;
+}
+
+.feature-customer-chart i {
+  flex: 1;
+
+  background: #1687ff;
+
+  opacity: 0.85;
+}
+
+.feature-customer-chart i:nth-child(1) {
+  height: 25%;
+}
+
+.feature-customer-chart i:nth-child(2) {
+  height: 47%;
+}
+
+.feature-customer-chart i:nth-child(3) {
+  height: 32%;
+}
+
+.feature-customer-chart i:nth-child(4) {
+  height: 63%;
+}
+
+.feature-customer-chart i:nth-child(5) {
+  height: 82%;
+}
+
+
+/* =========================================================
+   03 — ORDERS
+   ========================================================= */
+
+.feature-orders-scene {
+  position: relative;
+
+  width: 270px;
+  height: 150px;
+}
+
+.feature-orders-screen {
+  position: absolute;
+  left: 3px;
+  top: 5px;
+
+  width: 184px;
+  height: 113px;
+
+  overflow: hidden;
+
+  border: 2px solid #465f6b;
+  border-radius: 6px;
+
+  background: #0e2029;
+}
+
+.feature-orders-topbar {
+  height: 20px;
+  padding: 0 8px;
+
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  border-bottom: 1px solid #263d48;
+
+  background: #142933;
+}
+
+.feature-orders-topbar i {
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #526c78;
+}
+
+.feature-orders-cart {
+  position: absolute;
+  top: 39px;
+  left: 19px;
+
+  width: 35px;
+  height: 31px;
+
+  display: grid;
+  place-items: center;
+
+  color: #b8c5cb;
+
+  font-size: 1.7rem;
+
+  transform: rotate(-5deg);
+}
+
+.feature-orders-lines {
+  position: absolute;
+  left: 69px;
+  right: 12px;
+  top: 38px;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 12px;
+}
+
+.feature-orders-lines span {
+  height: 5px;
+
+  background: #36505d;
+}
+
+.feature-order-packages {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+
+  width: 106px;
+  height: 72px;
+}
+
+.feature-order-packages span {
+  position: absolute;
+
+  width: 48px;
+  height: 38px;
+
+  border: 1px solid #506975;
+
+  background: #263f4c;
+
+  box-shadow: 0 8px 14px rgba(0,0,0,0.2);
+}
+
+.feature-order-packages span::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 43%;
+
+  width: 14%;
+  height: 100%;
+
+  background: var(--orange);
+}
+
+.feature-order-packages span:nth-child(1) {
+  left: 0;
+  bottom: 0;
+}
+
+.feature-order-packages span:nth-child(2) {
+  right: 0;
+  bottom: 0;
+}
+
+.feature-order-packages span:nth-child(3) {
+  left: 29px;
+  top: 0;
+}
+
+
+/* =========================================================
+   04 — INVOICES
+   ========================================================= */
+
+.feature-invoice-scene {
+  position: relative;
+
+  width: 255px;
+  height: 150px;
+}
+
+.feature-invoice-document {
+  position: absolute;
+  left: 20px;
+  top: 0;
+
+  width: 155px;
+  height: 142px;
+  padding: 19px 16px;
+
+  border: 2px solid #506a76;
+  border-radius: 7px;
+
+  background: #0e2029;
+
+  transform: rotate(-2deg);
+}
+
+.feature-invoice-title {
+  color: #d9e2e6;
+
+  font-size: 0.67rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.feature-invoice-money {
+  position: absolute;
+  right: 15px;
+  top: 13px;
+
+  width: 33px;
+  height: 33px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #6f8792;
+  border-radius: 50%;
+
+  color: #a9bbc3;
+
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.feature-invoice-lines {
+  margin-top: 20px;
+
+  display: grid;
+  gap: 8px;
+}
+
+.feature-invoice-lines i {
+  width: 70%;
+  height: 4px;
+
+  background: #415a66;
+}
+
+.feature-invoice-lines i:nth-child(2) {
+  width: 53%;
+}
+
+.feature-invoice-lines i:nth-child(3) {
+  width: 62%;
+}
+
+.feature-invoice-table {
+  margin-top: 16px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.feature-invoice-table span {
+  height: 17px;
+
+  border: 1px solid #314a56;
+}
+
+.feature-invoice-check {
+  position: absolute;
+  right: 16px;
+  bottom: 3px;
+
+  width: 58px;
+  height: 58px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #3b8e61;
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #238f52,
+      #126235
+    );
+
+  color: white;
+
+  font-size: 2rem;
+  font-weight: 800;
+
+  box-shadow:
+    0 14px 23px rgba(0,0,0,0.3),
+    0 0 18px rgba(67,201,133,0.12);
+}
+
+
+/* =========================================================
+   FEATURE VISUAL ACCENTS
+   ========================================================= */
+
+.feature-card:nth-child(2) .feature-visual {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(22,135,255,0.09),
+      transparent 65%
+    );
+}
+
+.feature-card:nth-child(2):hover .feature-visual {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(22,135,255,0.14),
+      transparent 65%
+    );
+}
+
+
+/* =========================================================
+   MOBILE / TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .feature-visual {
+    height: 180px;
+  }
+}
+
+@media (max-width: 650px) {
+  .feature-visual {
+    height: 165px;
+    margin-top: 20px;
+    margin-bottom: 21px;
+  }
+
+  .feature-inventory-scene,
+  .feature-customer-scene,
+  .feature-orders-scene,
+  .feature-invoice-scene {
+    transform: scale(0.9);
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-visual,
+  .feature-visual::after {
+    transition: none;
+  }
+}
