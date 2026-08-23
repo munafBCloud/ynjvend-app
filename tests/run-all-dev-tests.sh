@@ -126,6 +126,15 @@ echo
 echo ">>> PHASE 3 PASSED"
 echo
 
+echo ">>> PHASE 4: BARCODE INVENTORY WORKFLOW"
+echo
+
+./tests/run-barcode-tests.sh
+
+echo
+echo ">>> PHASE 4 PASSED"
+echo
+
 echo "=========================================="
 echo "ALL DISTRODEX DEV REGRESSION TESTS PASSED"
 echo "=========================================="

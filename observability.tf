@@ -15,10 +15,11 @@ locals {
     update_customer = aws_lambda_function.update_customer.function_name
     delete_customer = aws_lambda_function.delete_customer.function_name
 
-    create_inventory = aws_lambda_function.create_inventory.function_name
-    get_inventory    = aws_lambda_function.get_inventory.function_name
-    update_inventory = aws_lambda_function.update_inventory.function_name
-    delete_inventory = aws_lambda_function.delete_inventory.function_name
+    create_inventory         = aws_lambda_function.create_inventory.function_name
+    get_inventory            = aws_lambda_function.get_inventory.function_name
+    get_inventory_by_barcode = aws_lambda_function.get_inventory_by_barcode.function_name
+    update_inventory         = aws_lambda_function.update_inventory.function_name
+    delete_inventory         = aws_lambda_function.delete_inventory.function_name
 
     create_order = aws_lambda_function.create_order.function_name
     get_orders   = aws_lambda_function.get_orders.function_name

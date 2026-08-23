@@ -107,3 +107,46 @@ resource "aws_dynamodb_table" "orders_v2" {
     Managed     = "Terraform"
   }
 }
+
+
+# ---------------------------------------------------------
+# Barcode Registry
+#
+# Provides a tenant-scoped one-to-one mapping:
+#
+#   companyId + barcode -> productId
+#
+# This prevents two inventory products within the same
+# company from claiming the same barcode while allowing
+# different companies to use the same manufacturer barcode.
+# ---------------------------------------------------------
+
+resource "aws_dynamodb_table" "barcode_registry" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
+  name         = "${var.project_name}-${var.environment}-barcode-registry"
+  billing_mode = "PAY_PER_REQUEST"
+
+  hash_key  = "companyId"
+  range_key = "barcode"
+
+  attribute {
+    name = "companyId"
+    type = "S"
+  }
+
+  attribute {
+    name = "barcode"
+    type = "S"
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 import boto3
+from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 
 
@@ -14,6 +15,11 @@ logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["INVENTORY_TABLE_NAME"])
+barcode_table = dynamodb.Table(
+    os.environ["BARCODE_REGISTRY_TABLE"]
+)
+dynamodb_client = boto3.client("dynamodb")
+serializer = TypeSerializer()
 
 ALLOWED_FIELDS = {
     "productName",
@@ -24,7 +30,17 @@ ALLOWED_FIELDS = {
     "reorderLevel",
     "status",
     "productId",
+    "barcode",
+    "barcodeType",
 }
+
+
+
+def serialize_item(item):
+    return {
+        key: serializer.serialize(value)
+        for key, value in item.items()
+    }
 
 
 def response(status_code, body):
@@ -79,6 +95,72 @@ def parse_non_negative_integer(value, field_name):
     return number
 
 
+
+def parse_barcode_fields(body):
+    barcode = str(body.get("barcode", "")).strip()
+    barcode_type = str(body.get("barcodeType", "")).strip().upper()
+
+    if not barcode and not barcode_type:
+        return "", ""
+
+    if not barcode:
+        raise ValueError(
+            "barcode is required when barcodeType is provided"
+        )
+
+    if not barcode_type:
+        raise ValueError(
+            "barcodeType is required when barcode is provided"
+        )
+
+    allowed_types = {
+        "UPC-A",
+        "UPC-E",
+        "EAN-8",
+        "EAN-13",
+        "CODE-128",
+    }
+
+    if barcode_type not in allowed_types:
+        raise ValueError(
+            "barcodeType must be UPC-A, UPC-E, EAN-8, "
+            "EAN-13, or CODE-128"
+        )
+
+    numeric_lengths = {
+        "UPC-A": 12,
+        "UPC-E": 8,
+        "EAN-8": 8,
+        "EAN-13": 13,
+    }
+
+    if barcode_type in numeric_lengths:
+        expected_length = numeric_lengths[barcode_type]
+
+        if not barcode.isdigit():
+            raise ValueError(
+                f"{barcode_type} barcode must contain only digits"
+            )
+
+        if len(barcode) != expected_length:
+            raise ValueError(
+                f"{barcode_type} barcode must be "
+                f"{expected_length} digits"
+            )
+
+    if barcode_type == "CODE-128":
+        if len(barcode) > 80:
+            raise ValueError(
+                "CODE-128 barcode cannot exceed 80 characters"
+            )
+
+        if not all(32 <= ord(character) <= 126 for character in barcode):
+            raise ValueError(
+                "CODE-128 barcode contains unsupported characters"
+            )
+
+    return barcode, barcode_type
+
 def handler(event, context):
     try:
         company_id = get_company_id(event)
@@ -124,6 +206,16 @@ def handler(event, context):
 
         product_name = str(body.get("productName", "")).strip()
         brand = str(body.get("brand", "")).strip()
+
+        try:
+            barcode, barcode_type = parse_barcode_fields(body)
+        except ValueError as error:
+            return response(
+                400,
+                {
+                    "message": str(error)
+                },
+            )
 
         if not product_name:
             return response(
@@ -232,13 +324,52 @@ def handler(event, context):
             "updatedAt": timestamp,
         }
 
-        table.put_item(
-            Item=item,
-            ConditionExpression=(
-                "attribute_not_exists(companyId) "
-                "AND attribute_not_exists(productId)"
-            ),
-        )
+        if barcode:
+            item["barcode"] = barcode
+            item["barcodeType"] = barcode_type
+
+        if barcode:
+            barcode_item = {
+                "companyId": company_id,
+                "barcode": barcode,
+                "productId": product_id,
+                "barcodeType": barcode_type,
+                "createdAt": timestamp,
+            }
+
+            dynamodb_client.transact_write_items(
+                TransactItems=[
+                    {
+                        "Put": {
+                            "TableName": table.name,
+                            "Item": serialize_item(item),
+                            "ConditionExpression": (
+                                "attribute_not_exists(companyId) "
+                                "AND attribute_not_exists(productId)"
+                            ),
+                        }
+                    },
+                    {
+                        "Put": {
+                            "TableName": barcode_table.name,
+                            "Item": serialize_item(barcode_item),
+                            "ConditionExpression": (
+                                "attribute_not_exists(companyId) "
+                                "AND attribute_not_exists(barcode)"
+                            ),
+                        }
+                    },
+                ]
+            )
+
+        else:
+            table.put_item(
+                Item=item,
+                ConditionExpression=(
+                    "attribute_not_exists(companyId) "
+                    "AND attribute_not_exists(productId)"
+                ),
+            )
 
         return response(
             201,
@@ -262,6 +393,17 @@ def handler(event, context):
                     "message": (
                         "An inventory product with this productId "
                         "already exists."
+                    )
+                },
+            )
+
+        if error_code == "TransactionCanceledException":
+            return response(
+                409,
+                {
+                    "message": (
+                        "The productId or barcode is already in use "
+                        "for this company."
                     )
                 },
             )

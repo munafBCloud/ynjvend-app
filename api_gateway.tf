@@ -500,3 +500,33 @@ resource "aws_lambda_permission" "allow_api_update_invoice" {
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/PUT/invoices/*"
 }
+
+
+# ---------------------------------------------------------
+# GET INVENTORY BY BARCODE
+# Scanner lookup route: GET /inventory/barcode/{barcode}
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "get_inventory_by_barcode_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_inventory_by_barcode.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_inventory_by_barcode" {
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /inventory/barcode/{barcode}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.get_inventory_by_barcode_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_get_inventory_by_barcode_api_gateway" {
+  statement_id  = "AllowGetInventoryByBarcodeAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_inventory_by_barcode.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}

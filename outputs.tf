@@ -46,3 +46,8 @@ output "cognito_employee_group_name" {
   description = "Cognito employee group"
   value       = aws_cognito_user_group.employees.name
 }
+
+
+output "barcode_registry_table_name" {
+  value = aws_dynamodb_table.barcode_registry.name
+}
