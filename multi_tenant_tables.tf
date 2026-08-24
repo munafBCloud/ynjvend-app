@@ -186,3 +186,39 @@ resource "aws_dynamodb_table" "inventory_receipts" {
     Managed     = "Terraform"
   }
 }
+
+
+# =========================================================
+# INVENTORY RECEIVING SESSIONS
+# Tenant-aware receiving workflow sessions
+# =========================================================
+
+resource "aws_dynamodb_table" "inventory_receiving_sessions" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
+  name         = "${var.project_name}-${var.environment}-inventory-receiving-sessions"
+  billing_mode = "PAY_PER_REQUEST"
+
+  hash_key  = "companyId"
+  range_key = "sessionId"
+
+  attribute {
+    name = "companyId"
+    type = "S"
+  }
+
+  attribute {
+    name = "sessionId"
+    type = "S"
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}

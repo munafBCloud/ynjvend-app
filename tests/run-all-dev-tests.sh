@@ -144,6 +144,15 @@ echo
 echo ">>> PHASE 5 PASSED"
 echo
 
+echo ">>> PHASE 6: RECEIVING SESSION WORKFLOW"
+echo
+
+./tests/run-receiving-session-tests.sh
+
+echo
+echo ">>> PHASE 6 PASSED"
+echo
+
 echo "=========================================="
 echo "ALL DISTRODEX DEV REGRESSION TESTS PASSED"
 echo "=========================================="

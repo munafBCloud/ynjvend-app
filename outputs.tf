@@ -56,3 +56,8 @@ output "barcode_registry_table_name" {
 output "inventory_receipts_table_name" {
   value = aws_dynamodb_table.inventory_receipts.name
 }
+
+
+output "inventory_receiving_sessions_table_name" {
+  value = aws_dynamodb_table.inventory_receiving_sessions.name
+}

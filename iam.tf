@@ -40,6 +40,7 @@ resource "aws_iam_role_policy" "lambda_dynamodb_access" {
           aws_dynamodb_table.inventory_v2.arn,
           aws_dynamodb_table.barcode_registry.arn,
           aws_dynamodb_table.inventory_receipts.arn,
+          aws_dynamodb_table.inventory_receiving_sessions.arn,
           aws_dynamodb_table.orders_v2.arn,
           aws_dynamodb_table.invoices.arn,
           aws_dynamodb_table.beta_applications.arn,

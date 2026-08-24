@@ -96,9 +96,28 @@ resource "aws_lambda_function" "receive_inventory" {
 
   environment {
     variables = {
-      INVENTORY_TABLE_NAME     = aws_dynamodb_table.inventory_v2.name
-      BARCODE_REGISTRY_TABLE   = aws_dynamodb_table.barcode_registry.name
-      INVENTORY_RECEIPTS_TABLE = aws_dynamodb_table.inventory_receipts.name
+      INVENTORY_TABLE_NAME               = aws_dynamodb_table.inventory_v2.name
+      BARCODE_REGISTRY_TABLE             = aws_dynamodb_table.barcode_registry.name
+      INVENTORY_RECEIPTS_TABLE           = aws_dynamodb_table.inventory_receipts.name
+      INVENTORY_RECEIVING_SESSIONS_TABLE = aws_dynamodb_table.inventory_receiving_sessions.name
+    }
+  }
+}
+
+
+resource "aws_lambda_function" "create_receiving_session" {
+  function_name = "${var.project_name}-${var.environment}-create-receiving-session"
+
+  role    = aws_iam_role.lambda_execution_role.arn
+  runtime = "python3.13"
+  handler = "create_receiving_session.lambda_handler"
+
+  filename         = "lambda/create_receiving_session.zip"
+  source_code_hash = filebase64sha256("lambda/create_receiving_session.zip")
+
+  environment {
+    variables = {
+      INVENTORY_RECEIVING_SESSIONS_TABLE = aws_dynamodb_table.inventory_receiving_sessions.name
     }
   }
 }

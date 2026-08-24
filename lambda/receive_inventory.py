@@ -28,11 +28,16 @@ receipts_table = dynamodb.Table(
     os.environ["INVENTORY_RECEIPTS_TABLE"]
 )
 
+sessions_table = dynamodb.Table(
+    os.environ["INVENTORY_RECEIVING_SESSIONS_TABLE"]
+)
+
 serializer = TypeSerializer()
 
 ALLOWED_FIELDS = {
     "barcode",
     "quantityReceived",
+    "sessionId",
 }
 
 
@@ -207,6 +212,18 @@ def lambda_handler(event, context):
                 },
             )
 
+        session_id = str(
+            body.get("sessionId", "")
+        ).strip()
+
+        if len(session_id) > 100:
+            return response(
+                400,
+                {
+                    "message": "sessionId cannot exceed 100 characters."
+                },
+            )
+
         try:
             quantity_received = parse_positive_integer(
                 body.get("quantityReceived"),
@@ -257,6 +274,35 @@ def lambda_handler(event, context):
                     "message": "Barcode registry is inconsistent."
                 },
             )
+
+        session_item = None
+
+        if session_id:
+            session_response = sessions_table.get_item(
+                Key={
+                    "companyId": company_id,
+                    "sessionId": session_id,
+                },
+                ConsistentRead=True,
+            )
+
+            session_item = session_response.get("Item")
+
+            if not session_item:
+                return response(
+                    404,
+                    {
+                        "message": "Receiving session not found."
+                    },
+                )
+
+            if session_item.get("status") != "OPEN":
+                return response(
+                    409,
+                    {
+                        "message": "Receiving session is not open."
+                    },
+                )
 
         inventory_response = inventory_table.get_item(
             Key={
@@ -334,8 +380,10 @@ def lambda_handler(event, context):
             "type": "RECEIVING",
         }
 
-        dynamodb_client.transact_write_items(
-            TransactItems=[
+        if session_id:
+            receipt_item["sessionId"] = session_id
+
+        transaction_items = [
                 {
                     "ConditionCheck": {
                         "TableName": barcode_table.name,
@@ -400,6 +448,48 @@ def lambda_handler(event, context):
                     }
                 },
             ]
+
+        if session_id:
+            transaction_items.append(
+                {
+                    "Update": {
+                        "TableName": sessions_table.name,
+                        "Key": serialize_item(
+                            {
+                                "companyId": company_id,
+                                "sessionId": session_id,
+                            }
+                        ),
+                        "UpdateExpression": (
+                            "SET receiptCount = receiptCount + :one, "
+                            "totalUnitsReceived = "
+                            "totalUnitsReceived + :quantity, "
+                            "updatedAt = :updatedAt"
+                        ),
+                        "ConditionExpression": (
+                            "attribute_exists(companyId) "
+                            "AND attribute_exists(sessionId) "
+                            "AND #status = :open"
+                        ),
+                        "ExpressionAttributeNames": {
+                            "#status": "status"
+                        },
+                        "ExpressionAttributeValues": (
+                            serialize_values(
+                                {
+                                    ":one": 1,
+                                    ":quantity": quantity_received,
+                                    ":updatedAt": received_at,
+                                    ":open": "OPEN",
+                                }
+                            )
+                        ),
+                    }
+                }
+            )
+
+        dynamodb_client.transact_write_items(
+            TransactItems=transaction_items
         )
 
         updated_response = inventory_table.get_item(
