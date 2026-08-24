@@ -42,5 +42,9 @@ package_file \
   lambda/get_inventory_by_barcode.py \
   lambda/get_inventory_by_barcode.zip
 
+package_file \
+  lambda/receive_inventory.py \
+  lambda/receive_inventory.zip
+
 echo
 echo "Barcode Lambda artifacts packaged."

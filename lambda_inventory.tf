@@ -82,3 +82,23 @@ resource "aws_lambda_function" "get_inventory_by_barcode" {
     }
   }
 }
+
+
+resource "aws_lambda_function" "receive_inventory" {
+  function_name = "${var.project_name}-${var.environment}-receive-inventory"
+
+  role    = aws_iam_role.lambda_execution_role.arn
+  runtime = "python3.13"
+  handler = "receive_inventory.lambda_handler"
+
+  filename         = "lambda/receive_inventory.zip"
+  source_code_hash = filebase64sha256("lambda/receive_inventory.zip")
+
+  environment {
+    variables = {
+      INVENTORY_TABLE_NAME     = aws_dynamodb_table.inventory_v2.name
+      BARCODE_REGISTRY_TABLE   = aws_dynamodb_table.barcode_registry.name
+      INVENTORY_RECEIPTS_TABLE = aws_dynamodb_table.inventory_receipts.name
+    }
+  }
+}

@@ -135,6 +135,15 @@ echo
 echo ">>> PHASE 4 PASSED"
 echo
 
+echo ">>> PHASE 5: INVENTORY RECEIVING WORKFLOW"
+echo
+
+./tests/run-receiving-tests.sh
+
+echo
+echo ">>> PHASE 5 PASSED"
+echo
+
 echo "=========================================="
 echo "ALL DISTRODEX DEV REGRESSION TESTS PASSED"
 echo "=========================================="

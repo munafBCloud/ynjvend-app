@@ -150,3 +150,39 @@ resource "aws_dynamodb_table" "barcode_registry" {
     Managed     = "Terraform"
   }
 }
+
+
+# =========================================================
+# INVENTORY RECEIPTS
+# Immutable tenant-aware inventory receiving audit records
+# =========================================================
+
+resource "aws_dynamodb_table" "inventory_receipts" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
+  name         = "${var.project_name}-${var.environment}-inventory-receipts"
+  billing_mode = "PAY_PER_REQUEST"
+
+  hash_key  = "companyId"
+  range_key = "receiptId"
+
+  attribute {
+    name = "companyId"
+    type = "S"
+  }
+
+  attribute {
+    name = "receiptId"
+    type = "S"
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}

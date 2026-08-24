@@ -51,3 +51,8 @@ output "cognito_employee_group_name" {
 output "barcode_registry_table_name" {
   value = aws_dynamodb_table.barcode_registry.name
 }
+
+
+output "inventory_receipts_table_name" {
+  value = aws_dynamodb_table.inventory_receipts.name
+}
