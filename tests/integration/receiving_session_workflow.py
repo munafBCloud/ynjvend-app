@@ -327,6 +327,144 @@ def main():
         print("[PASS] Persisted receipt retains session linkage")
 
         # ---------------------------------------------
+        # Complete receiving session
+        # ---------------------------------------------
+
+        status, body = request(
+            "POST",
+            f"{api}/inventory/receiving-sessions/{session_id}/complete",
+            args.token_a,
+        )
+
+        expect_status(
+            "Complete receiving session",
+            status,
+            200,
+        )
+
+        completed_session = body.get("session", {})
+
+        expect(
+            completed_session.get("status") == "COMPLETED",
+            "Session status did not transition to COMPLETED",
+        )
+
+        expect(
+            bool(str(
+                completed_session.get("completedAt", "")
+            ).strip()),
+            "completedAt was not populated",
+        )
+
+        expect(
+            bool(str(
+                completed_session.get("completedBy", "")
+            ).strip()),
+            "completedBy was not populated",
+        )
+
+        expect(
+            int(completed_session.get("receiptCount", -1)) == 1,
+            "Completed session receiptCount changed unexpectedly",
+        )
+
+        expect(
+            int(completed_session.get("totalUnitsReceived", -1)) == 6,
+            "Completed session totalUnitsReceived changed unexpectedly",
+        )
+
+        print("[PASS] Receiving session completed correctly")
+
+        # ---------------------------------------------
+        # Reject duplicate completion
+        # ---------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receiving-sessions/{session_id}/complete",
+            args.token_a,
+        )
+
+        expect_status(
+            "Reject second session completion",
+            status,
+            409,
+        )
+
+        # ---------------------------------------------
+        # Reject receive against completed session
+        # ---------------------------------------------
+
+        inventory_before_closed_receive = inventory_table.get_item(
+            Key={
+                "companyId": company_a,
+                "productId": product_a,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        quantity_before_closed_receive = int(
+            inventory_before_closed_receive["quantityInStock"]
+        )
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "sessionId": session_id,
+                "barcode": barcode,
+                "quantityReceived": 3,
+            },
+        )
+
+        expect_status(
+            "Reject receive against completed session",
+            status,
+            409,
+        )
+
+        inventory_after_closed_receive = inventory_table.get_item(
+            Key={
+                "companyId": company_a,
+                "productId": product_a,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            int(
+                inventory_after_closed_receive["quantityInStock"]
+            ) == quantity_before_closed_receive,
+            "Closed-session receive changed inventory quantity",
+        )
+
+        closed_session = sessions_table.get_item(
+            Key={
+                "companyId": company_a,
+                "sessionId": session_id,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            closed_session.get("status") == "COMPLETED",
+            "Closed session status changed unexpectedly",
+        )
+
+        expect(
+            int(closed_session.get("receiptCount", -1)) == 1,
+            "Closed-session receive changed receiptCount",
+        )
+
+        expect(
+            int(closed_session.get("totalUnitsReceived", -1)) == 6,
+            "Closed-session receive changed totalUnitsReceived",
+        )
+
+        print("[PASS] Completed session blocks further receiving")
+
+        # ---------------------------------------------
         # Tenant isolation
         # ---------------------------------------------
 

@@ -121,3 +121,21 @@ resource "aws_lambda_function" "create_receiving_session" {
     }
   }
 }
+
+
+resource "aws_lambda_function" "complete_receiving_session" {
+  function_name = "${var.project_name}-${var.environment}-complete-receiving-session"
+
+  role    = aws_iam_role.lambda_execution_role.arn
+  runtime = "python3.13"
+  handler = "complete_receiving_session.lambda_handler"
+
+  filename         = "lambda/complete_receiving_session.zip"
+  source_code_hash = filebase64sha256("lambda/complete_receiving_session.zip")
+
+  environment {
+    variables = {
+      INVENTORY_RECEIVING_SESSIONS_TABLE = aws_dynamodb_table.inventory_receiving_sessions.name
+    }
+  }
+}

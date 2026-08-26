@@ -590,3 +590,33 @@ resource "aws_lambda_permission" "allow_create_receiving_session_api_gateway" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# COMPLETE RECEIVING SESSION
+# POST /inventory/receiving-sessions/{sessionId}/complete
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "complete_receiving_session_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.complete_receiving_session.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "complete_receiving_session" {
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "POST /inventory/receiving-sessions/{sessionId}/complete"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.complete_receiving_session_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_complete_receiving_session_api_gateway" {
+  statement_id  = "AllowCompleteReceivingSessionAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.complete_receiving_session.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
+}

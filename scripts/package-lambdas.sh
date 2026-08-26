@@ -50,5 +50,9 @@ package_file \
   lambda/create_receiving_session.py \
   lambda/create_receiving_session.zip
 
+package_file \
+  lambda/complete_receiving_session.py \
+  lambda/complete_receiving_session.zip
+
 echo
 echo "Barcode Lambda artifacts packaged."
