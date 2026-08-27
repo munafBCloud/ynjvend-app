@@ -103,11 +103,13 @@ export default function OwnerDashboardPage() {
       label: "Total Customers",
       value: customers.length,
       description: "Active business customers",
+      accent: "blue" as const,
     },
     {
       label: "Open Orders",
       value: openOrders.length,
       description: "New or preparing orders",
+      accent: "orange" as const,
     },
     {
       label: "Outstanding Balance",
@@ -116,29 +118,44 @@ export default function OwnerDashboardPage() {
         currency: "USD",
       }),
       description: "Remaining invoice balance",
+      accent: "orange" as const,
     },
     {
       label: "Inventory Products",
       value: inventory.length,
       description: "Products currently tracked",
+      accent: "blue" as const,
     },
   ];
 
   return (
-    <section className="px-6 py-10">
-      <div className="mx-auto max-w-7xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-          Dashboard
-        </p>
+    <section className="px-5 py-7 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-[1500px]">
+        <div className="flex flex-col gap-4 border-b border-[var(--dd-border)] pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="dd-accent-line" />
 
-        <h2 className="mt-2 text-3xl font-bold text-slate-950">
-          Business Overview
-        </h2>
+              <p className="dd-label text-[var(--dd-orange)]">
+                Command Center
+              </p>
+            </div>
 
-        <p className="mt-3 text-slate-600">
-          Review customers, orders, outstanding balances, and
-          inventory status.
-        </p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-[var(--dd-text)] sm:text-3xl">
+              Business Overview
+            </h2>
+
+            <p className="mt-2 max-w-2xl text-sm text-[var(--dd-text-secondary)]">
+              Live operational snapshot across orders, inventory,
+              customers, and receivables.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-[var(--dd-text-muted)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--dd-success)]" />
+            Data connected
+          </div>
+        </div>
 
         {loading && (
           <LoadingState message="Loading dashboard data..." />
@@ -153,36 +170,43 @@ export default function OwnerDashboardPage() {
 
         {!loading && !error && (
           <>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {dashboardCards.map((card) => (
                 <SummaryCard
                   key={card.label}
                   label={card.label}
                   value={card.value}
                   description={card.description}
+                  accent={card.accent}
                 />
               ))}
             </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <h3 className="text-xl font-bold text-slate-950">
-                  Recent Orders
-                </h3>
+            <div className="mt-6 overflow-hidden rounded-xl border border-[var(--dd-border)] bg-[var(--dd-surface)]">
+              <div className="flex items-center justify-between gap-4 border-b border-[var(--dd-border)] px-5 py-4">
+                <div>
+                  <p className="dd-label">
+                    Order Activity
+                  </p>
 
-                <p className="mt-1 text-sm text-slate-600">
-                  The five most recently created orders.
-                </p>
+                  <h3 className="mt-1 text-base font-bold text-[var(--dd-text)]">
+                    Recent Orders
+                  </h3>
+                </div>
+
+                <span className="text-xs text-[var(--dd-text-muted)]">
+                  Latest 5
+                </span>
               </div>
 
               {recentOrders.length === 0 ? (
                 <div className="p-6">
-                  <p className="text-slate-600">
+                  <p className="text-sm text-[var(--dd-text-muted)]">
                     No orders have been created yet.
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-200">
+                <div className="divide-y divide-[var(--dd-border)]">
                   {recentOrders.map((order) => {
                     const totalQuantity = order.items.reduce(
                       (total, item) => total + item.quantity,
@@ -192,14 +216,14 @@ export default function OwnerDashboardPage() {
                     return (
                       <article
                         key={order.orderId}
-                        className="grid gap-4 px-6 py-5 md:grid-cols-[1.5fr_1fr_auto] md:items-center"
+                        className="grid gap-4 px-5 py-4 transition hover:bg-[var(--dd-surface-raised)] md:grid-cols-[1.5fr_1fr_auto] md:items-center"
                       >
                         <div>
-                          <p className="font-bold text-slate-950">
+                          <p className="font-semibold text-[var(--dd-text)]">
                             {order.businessName}
                           </p>
 
-                          <p className="mt-1 text-sm text-slate-600">
+                          <p className="mt-1 text-xs text-[var(--dd-text-secondary)]">
                             {order.items.length} product
                             {order.items.length === 1 ? "" : "s"} ·{" "}
                             {totalQuantity} total unit
@@ -208,11 +232,11 @@ export default function OwnerDashboardPage() {
                         </div>
 
                         <div>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-xs text-[var(--dd-text-secondary)]">
                             {formatDate(order.createdAt, "dateTime")}
                           </p>
 
-                          <p className="mt-1 break-all text-xs text-slate-400">
+                          <p className="mt-1 break-all font-mono text-[10px] text-[var(--dd-text-muted)]">
                             {order.orderId}
                           </p>
                         </div>

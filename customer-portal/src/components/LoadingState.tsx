@@ -11,14 +11,18 @@ export default function LoadingState({
     <div
       className={[
         className,
-        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm",
+        "rounded-xl border border-[var(--dd-border)] bg-[var(--dd-surface)] p-6",
       ].join(" ")}
       role="status"
       aria-live="polite"
     >
-      <p className="text-slate-600">
-        {message}
-      </p>
+      <div className="flex items-center gap-3">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--dd-blue)]" />
+
+        <p className="text-sm text-[var(--dd-text-secondary)]">
+          {message}
+        </p>
+      </div>
     </div>
   );
 }

@@ -13,17 +13,23 @@ export default function ErrorMessage({
     <div
       className={[
         className,
-        "rounded-xl border border-red-200 bg-red-50 p-5",
+        "rounded-xl border border-red-900/60 bg-[var(--dd-danger-soft)] p-5",
       ].join(" ")}
       role="alert"
     >
-      <p className="font-semibold text-red-800">
-        {title}
-      </p>
+      <div className="flex gap-3">
+        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--dd-danger)]" />
 
-      <p className="mt-1 text-sm text-red-700">
-        {message}
-      </p>
+        <div>
+          <p className="font-semibold text-red-300">
+            {title}
+          </p>
+
+          <p className="mt-1 text-sm text-red-300/70">
+            {message}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

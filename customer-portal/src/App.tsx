@@ -13,6 +13,7 @@ import OwnerDashboardPage from "./pages/owner/OwnerDashboardPage";
 import OwnerInventoryPage from "./pages/owner/OwnerInventoryPage";
 import OwnerInvoicesPage from "./pages/owner/OwnerInvoicesPage";
 import OwnerOrdersPage from "./pages/owner/OwnerOrdersPage";
+import OwnerReceivingPage from "./pages/owner/OwnerReceivingPage";
 
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -69,6 +70,11 @@ export default function App() {
         <Route
           path="inventory"
           element={<OwnerInventoryPage />}
+        />
+
+        <Route
+          path="receiving"
+          element={<OwnerReceivingPage />}
         />
       </Route>
 

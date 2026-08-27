@@ -13,6 +13,10 @@ export type InventoryItem = {
   caseCost: number;
   sellingPrice: number;
   status: InventoryStatus;
+
+  barcode?: string;
+  barcodeType?: string;
+
   availability?: string;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +35,9 @@ export type CreateInventoryInput = {
   caseCost: number;
   sellingPrice: number;
   status: InventoryStatus;
+
+  barcode?: string;
+  barcodeType?: string;
 };
 
 export type CreateInventoryResponse = {
