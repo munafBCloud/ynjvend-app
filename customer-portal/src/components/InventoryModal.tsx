@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useState,
+  type FormEvent,
+} from "react";
 
 import type {
   CreateInventoryInput,
@@ -8,7 +11,9 @@ import type {
 type InventoryModalProps = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateInventoryInput) => Promise<void>;
+  onSubmit: (
+    data: CreateInventoryInput,
+  ) => Promise<void>;
 };
 
 type InventoryFormState = {
@@ -37,10 +42,15 @@ export default function InventoryModal({
   onSubmit,
 }: InventoryModalProps) {
   const [form, setForm] =
-    useState<InventoryFormState>(INITIAL_FORM);
+    useState<InventoryFormState>(
+      INITIAL_FORM,
+    );
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
 
   if (!open) {
     return null;
@@ -61,18 +71,29 @@ export default function InventoryModal({
   }
 
   async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+
     setError("");
 
-    const productName = form.productName.trim();
-    const brand = form.brand.trim();
+    const productName =
+      form.productName.trim();
 
-    const quantityInStock = Number(form.quantityInStock);
-    const reorderLevel = Number(form.reorderLevel);
-    const caseCost = Number(form.caseCost);
-    const sellingPrice = Number(form.sellingPrice);
+    const brand =
+      form.brand.trim();
+
+    const quantityInStock =
+      Number(form.quantityInStock);
+
+    const reorderLevel =
+      Number(form.reorderLevel);
+
+    const caseCost =
+      Number(form.caseCost);
+
+    const sellingPrice =
+      Number(form.sellingPrice);
 
     if (
       !productName ||
@@ -82,39 +103,60 @@ export default function InventoryModal({
       form.caseCost === "" ||
       form.sellingPrice === ""
     ) {
-      setError("Please complete all fields.");
+      setError(
+        "Please complete all fields.",
+      );
+
       return;
     }
 
     if (
-      !Number.isInteger(quantityInStock) ||
+      !Number.isInteger(
+        quantityInStock,
+      ) ||
       quantityInStock < 0
     ) {
       setError(
         "Quantity in stock must be a non-negative whole number.",
       );
+
       return;
     }
 
     if (
-      !Number.isInteger(reorderLevel) ||
+      !Number.isInteger(
+        reorderLevel,
+      ) ||
       reorderLevel < 0
     ) {
       setError(
         "Reorder level must be a non-negative whole number.",
       );
+
       return;
     }
 
-    if (!Number.isFinite(caseCost) || caseCost < 0) {
-      setError("Case cost must be a valid non-negative amount.");
+    if (
+      !Number.isFinite(caseCost) ||
+      caseCost < 0
+    ) {
+      setError(
+        "Case cost must be a valid non-negative amount.",
+      );
+
       return;
     }
 
-    if (!Number.isFinite(sellingPrice) || sellingPrice < 0) {
+    if (
+      !Number.isFinite(
+        sellingPrice,
+      ) ||
+      sellingPrice < 0
+    ) {
       setError(
         "Selling price must be a valid non-negative amount.",
       );
+
       return;
     }
 
@@ -145,20 +187,39 @@ export default function InventoryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 px-4 py-8">
-      <div className="mx-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-              Inventory Management
-            </p>
+    <div
+      className="dd-inventory-modal"
+      role="presentation"
+    >
+      <button
+        type="button"
+        className="dd-inventory-modal__backdrop"
+        onClick={handleClose}
+        aria-label="Close add product dialog"
+        disabled={loading}
+      />
 
-            <h2 className="mt-1 text-2xl font-bold text-slate-950">
-              Add Inventory Product
+      <div
+        className="dd-inventory-modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inventory-modal-title"
+      >
+        <header className="dd-inventory-modal__header">
+          <div>
+            <div className="dd-inventory-modal__eyebrow">
+              <span />
+              Inventory Control
+            </div>
+
+            <h2 id="inventory-modal-title">
+              Add Product
             </h2>
 
-            <p className="mt-1 text-sm text-slate-600">
-              Add stock, cost, and default customer pricing.
+            <p>
+              Create a new inventory item
+              with stock, cost, pricing,
+              and reorder information.
             </p>
           </div>
 
@@ -166,228 +227,394 @@ export default function InventoryModal({
             type="button"
             onClick={handleClose}
             disabled={loading}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+            className="dd-inventory-modal__close"
+            aria-label="Close"
           >
-            Close
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M7 7l10 10M17 7 7 17"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
-        </div>
+        </header>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="dd-inventory-modal__form"
+        >
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-semibold text-red-800">
-                {error}
-              </p>
+            <div
+              className="dd-inventory-modal__error"
+              role="alert"
+            >
+              <div className="dd-inventory-modal__error-icon">
+                !
+              </div>
+
+              <div>
+                <strong>
+                  Product could not be saved
+                </strong>
+
+                <p>{error}</p>
+              </div>
             </div>
           )}
 
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label
+          <section className="dd-inventory-modal__section">
+            <div className="dd-inventory-modal__section-heading">
+              <span>01</span>
+
+              <div>
+                <strong>
+                  Product Details
+                </strong>
+
+                <p>
+                  Basic product identification.
+                </p>
+              </div>
+            </div>
+
+            <div className="dd-inventory-modal__grid">
+              <FormField
+                label="Product Name"
                 htmlFor="inventory-product-name"
-                className="block text-sm font-semibold text-slate-700"
               >
-                Product name
-              </label>
+                <input
+                  id="inventory-product-name"
+                  value={form.productName}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      productName:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  maxLength={150}
+                  placeholder="Coke 12 Pack"
+                  autoFocus
+                />
+              </FormField>
 
-              <input
-                id="inventory-product-name"
-                value={form.productName}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    productName: event.target.value,
-                  })
-                }
-                disabled={loading}
-                maxLength={150}
-                placeholder="Coke 12 Pack"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
-            </div>
-
-            <div>
-              <label
+              <FormField
+                label="Brand"
                 htmlFor="inventory-brand"
-                className="block text-sm font-semibold text-slate-700"
               >
-                Brand
-              </label>
+                <input
+                  id="inventory-brand"
+                  value={form.brand}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      brand:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  maxLength={100}
+                  placeholder="Coca-Cola"
+                />
+              </FormField>
+            </div>
+          </section>
 
-              <input
-                id="inventory-brand"
-                value={form.brand}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    brand: event.target.value,
-                  })
-                }
-                disabled={loading}
-                maxLength={100}
-                placeholder="Coca-Cola"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
+          <section className="dd-inventory-modal__section">
+            <div className="dd-inventory-modal__section-heading">
+              <span>02</span>
+
+              <div>
+                <strong>
+                  Stock Control
+                </strong>
+
+                <p>
+                  Set current quantity and
+                  reorder threshold.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label
+            <div className="dd-inventory-modal__grid">
+              <FormField
+                label="Quantity In Stock"
                 htmlFor="inventory-quantity"
-                className="block text-sm font-semibold text-slate-700"
+                hint="Current cases available"
               >
-                Quantity in stock
-              </label>
+                <input
+                  id="inventory-quantity"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  value={
+                    form.quantityInStock
+                  }
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      quantityInStock:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  placeholder="0"
+                />
+              </FormField>
 
-              <input
-                id="inventory-quantity"
-                type="number"
-                min="0"
-                step="1"
-                value={form.quantityInStock}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    quantityInStock: event.target.value,
-                  })
-                }
-                disabled={loading}
-                placeholder="0"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
-            </div>
-
-            <div>
-              <label
+              <FormField
+                label="Reorder Level"
                 htmlFor="inventory-reorder-level"
-                className="block text-sm font-semibold text-slate-700"
+                hint="Low-stock threshold"
               >
-                Reorder level
-              </label>
+                <input
+                  id="inventory-reorder-level"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  value={
+                    form.reorderLevel
+                  }
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      reorderLevel:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  placeholder="10"
+                />
+              </FormField>
+            </div>
+          </section>
 
-              <input
-                id="inventory-reorder-level"
-                type="number"
-                min="0"
-                step="1"
-                value={form.reorderLevel}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    reorderLevel: event.target.value,
-                  })
-                }
-                disabled={loading}
-                placeholder="10"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
+          <section className="dd-inventory-modal__section">
+            <div className="dd-inventory-modal__section-heading">
+              <span>03</span>
+
+              <div>
+                <strong>
+                  Pricing
+                </strong>
+
+                <p>
+                  Define acquisition cost
+                  and default selling price.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label
+            <div className="dd-inventory-modal__grid">
+              <FormField
+                label="Case Cost"
                 htmlFor="inventory-case-cost"
-                className="block text-sm font-semibold text-slate-700"
+                hint="Cost paid per case"
+                prefix="$"
               >
-                Case cost
-              </label>
+                <input
+                  id="inventory-case-cost"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={form.caseCost}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      caseCost:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  placeholder="15.00"
+                />
+              </FormField>
 
-              <input
-                id="inventory-case-cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.caseCost}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    caseCost: event.target.value,
-                  })
-                }
-                disabled={loading}
-                placeholder="15.00"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
-
-              <p className="mt-1 text-xs text-slate-500">
-                The amount paid to acquire one case.
-              </p>
-            </div>
-
-            <div>
-              <label
+              <FormField
+                label="Selling Price"
                 htmlFor="inventory-selling-price"
-                className="block text-sm font-semibold text-slate-700"
+                hint="Default customer price"
+                prefix="$"
               >
-                Selling price
-              </label>
+                <input
+                  id="inventory-selling-price"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={
+                    form.sellingPrice
+                  }
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      sellingPrice:
+                        event.target.value,
+                    })
+                  }
+                  disabled={loading}
+                  placeholder="22.00"
+                />
+              </FormField>
+            </div>
+          </section>
 
-              <input
-                id="inventory-selling-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.sellingPrice}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    sellingPrice: event.target.value,
-                  })
-                }
-                disabled={loading}
-                placeholder="22.00"
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
+          <section className="dd-inventory-modal__section dd-inventory-modal__section--last">
+            <div className="dd-inventory-modal__section-heading">
+              <span>04</span>
 
-              <p className="mt-1 text-xs text-slate-500">
-                The default amount charged to customers.
-              </p>
+              <div>
+                <strong>
+                  Product Status
+                </strong>
+
+                <p>
+                  Control operational
+                  availability.
+                </p>
+              </div>
             </div>
 
-            <div className="md:col-span-2">
-              <label
-                htmlFor="inventory-status"
-                className="block text-sm font-semibold text-slate-700"
-              >
-                Product status
-              </label>
+            <FormField
+              label="Status"
+              htmlFor="inventory-status"
+            >
+              <div className="dd-inventory-modal__select-wrap">
+                <select
+                  id="inventory-status"
+                  value={form.status}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      status:
+                        event.target
+                          .value as InventoryStatus,
+                    })
+                  }
+                  disabled={loading}
+                >
+                  <option value="active">
+                    Active
+                  </option>
 
-              <select
-                id="inventory-status"
-                value={form.status}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    status: event.target.value as InventoryStatus,
-                  })
-                }
-                disabled={loading}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="archived">Archived</option>
-              </select>
+                  <option value="inactive">
+                    Inactive
+                  </option>
+
+                  <option value="archived">
+                    Archived
+                  </option>
+                </select>
+
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="m8 10 4 4 4-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </FormField>
+          </section>
+
+          <footer className="dd-inventory-modal__footer">
+            <div className="dd-inventory-modal__footer-note">
+              <span />
+              New inventory record
             </div>
-          </div>
 
-          <div className="mt-8 flex justify-end gap-3 border-t border-slate-200 pt-6">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Cancel
-            </button>
+            <div className="dd-inventory-modal__actions">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="dd-inventory-modal__cancel"
+              >
+                Cancel
+              </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Saving..." : "Add Inventory"}
-            </button>
-          </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="dd-inventory-modal__submit"
+              >
+                {loading ? (
+                  <>
+                    <span className="dd-inventory-modal__spinner" />
+                    Saving Product
+                  </>
+                ) : (
+                  <>
+                    <span>+</span>
+                    Add Product
+                  </>
+                )}
+              </button>
+            </div>
+          </footer>
         </form>
+      </div>
+    </div>
+  );
+}
+
+type FormFieldProps = {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  prefix?: string;
+  children: React.ReactNode;
+};
+
+function FormField({
+  label,
+  htmlFor,
+  hint,
+  prefix,
+  children,
+}: FormFieldProps) {
+  return (
+    <div className="dd-inventory-modal__field">
+      <div className="dd-inventory-modal__field-label">
+        <label htmlFor={htmlFor}>
+          {label}
+        </label>
+
+        {hint && (
+          <span>{hint}</span>
+        )}
+      </div>
+
+      <div
+        className={
+          prefix
+            ? "dd-inventory-modal__control dd-inventory-modal__control--prefix"
+            : "dd-inventory-modal__control"
+        }
+      >
+        {prefix && (
+          <span className="dd-inventory-modal__prefix">
+            {prefix}
+          </span>
+        )}
+
+        {children}
       </div>
     </div>
   );

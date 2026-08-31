@@ -7,5 +7,10 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+
+    // DEV only:
+    // Allow temporary Cloudflare Quick Tunnel hostnames
+    // so the mobile browser can reach the local Vite server.
+    allowedHosts: [".trycloudflare.com"],
   },
 });

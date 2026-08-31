@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import CustomerModal from "../../components/CustomerModal";
+import ErrorMessage from "../../components/ErrorMessage";
+import LoadingState from "../../components/LoadingState";
+import SummaryCard from "../../components/SummaryCard";
+
 import {
   createCustomer,
   getCustomers,
@@ -12,18 +21,35 @@ import type {
 } from "../../types/customer";
 
 export default function OwnerCustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(
-    "asc",
-  );
+  const [customers, setCustomers] =
+    useState<Customer[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
-  const [creatingCustomer, setCreatingCustomer] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [sortDirection, setSortDirection] =
+    useState<"asc" | "desc">("asc");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [
+    customerModalOpen,
+    setCustomerModalOpen,
+  ] = useState(false);
+
+  const [
+    creatingCustomer,
+    setCreatingCustomer,
+  ] = useState(false);
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
 
   useEffect(() => {
     async function loadCustomers() {
@@ -31,14 +57,19 @@ export default function OwnerCustomersPage() {
         setLoading(true);
         setError("");
 
-        const items = await getCustomers();
+        const items =
+          await getCustomers();
+
         setCustomers(items);
-      } catch (error) {
-        console.error("Unable to load customers:", error);
+      } catch (loadError) {
+        console.error(
+          "Unable to load customers:",
+          loadError,
+        );
 
         setError(
-          error instanceof Error
-            ? error.message
+          loadError instanceof Error
+            ? loadError.message
             : "Unable to load customers.",
         );
       } finally {
@@ -50,7 +81,8 @@ export default function OwnerCustomersPage() {
   }, []);
 
   const filteredCustomers = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch =
+      searchTerm.trim().toLowerCase();
 
     return [...customers]
       .filter((customer) => {
@@ -80,13 +112,33 @@ export default function OwnerCustomersPage() {
         );
       })
       .sort((first, second) => {
-        const comparison = first.businessName.localeCompare(
-          second.businessName,
-        );
+        const comparison =
+          first.businessName.localeCompare(
+            second.businessName,
+          );
 
-        return sortDirection === "asc" ? comparison : -comparison;
+        return sortDirection === "asc"
+          ? comparison
+          : -comparison;
       });
-  }, [customers, searchTerm, sortDirection]);
+  }, [
+    customers,
+    searchTerm,
+    sortDirection,
+  ]);
+
+  const customersWithEmail = useMemo(
+    () =>
+      customers.filter(
+        (customer) =>
+          Boolean(customer.email),
+      ).length,
+    [customers],
+  );
+
+  const customersWithoutEmail =
+    customers.length -
+    customersWithEmail;
 
   async function handleCreateCustomer(
     customerInput: CreateCustomerInput,
@@ -95,19 +147,28 @@ export default function OwnerCustomersPage() {
       setCreatingCustomer(true);
       setSuccessMessage("");
 
-      const createdCustomer = await createCustomer(customerInput);
+      const createdCustomer =
+        await createCustomer(
+          customerInput,
+        );
 
-      setCustomers((currentCustomers) => [
-        ...currentCustomers,
-        createdCustomer,
-      ]);
+      setCustomers(
+        (currentCustomers) => [
+          ...currentCustomers,
+          createdCustomer,
+        ],
+      );
 
       setSuccessMessage(
         `${createdCustomer.businessName} was added successfully.`,
       );
-    } catch (error) {
-      console.error("Unable to create customer:", error);
-      throw error;
+    } catch (createError) {
+      console.error(
+        "Unable to create customer:",
+        createError,
+      );
+
+      throw createError;
     } finally {
       setCreatingCustomer(false);
     }
@@ -128,206 +189,323 @@ export default function OwnerCustomersPage() {
 
   return (
     <>
-      <section className="px-6 py-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <section className="dd-customers">
+        <div className="dd-customers__inner">
+          <header className="dd-customers__header">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-                Customer Management
-              </p>
+              <div className="dd-customers__eyebrow">
+                <span />
+                Customer Operations
+              </div>
 
-              <h2 className="mt-2 text-3xl font-bold text-slate-950">
+              <h1>
                 Business Customers
-              </h2>
+              </h1>
 
-              <p className="mt-3 text-slate-600">
-                Add, search, and review customers registered with YNJ Vend.
+              <p>
+                Manage customer accounts,
+                contact details, and business
+                locations used across orders
+                and invoicing.
               </p>
             </div>
 
             <button
               type="button"
               onClick={openCustomerModal}
-              className="inline-flex items-center justify-center rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="dd-customers__add"
             >
-              + Add Customer
+              <span
+                className="dd-customers__add-plus"
+                aria-hidden="true"
+              >
+                +
+              </span>
+
+              <span>
+                Add Customer
+              </span>
             </button>
-          </div>
+          </header>
 
           {successMessage && (
-            <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4">
-              <p className="font-semibold text-green-800">
+            <div className="dd-customers__success">
+              <span
+                className="dd-customers__success-dot"
+                aria-hidden="true"
+              />
+
+              <p>
                 {successMessage}
               </p>
             </div>
           )}
 
           {loading && (
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-slate-600">Loading customers...</p>
-            </div>
+            <LoadingState message="Loading customers..." />
           )}
 
           {!loading && error && (
-            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
-              <p className="font-semibold text-red-800">
-                Unable to load customers
-              </p>
-
-              <p className="mt-2 text-sm text-red-700">{error}</p>
-            </div>
+            <ErrorMessage
+              title="Unable to load customers"
+              message={error}
+            />
           )}
 
           {!loading && !error && (
             <>
-              <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              <div className="dd-customers__metrics">
                 <SummaryCard
-                  label="Total Customers"
+                  label="Customers"
                   value={customers.length}
+                  description="Active customer records"
+                  accent="blue"
                 />
 
                 <SummaryCard
-                  label="Matching Results"
-                  value={filteredCustomers.length}
+                  label="Results"
+                  value={
+                    filteredCustomers.length
+                  }
+                  description="Currently displayed"
+                  accent="neutral"
+                />
+
+                <SummaryCard
+                  label="Email On File"
+                  value={
+                    customersWithEmail
+                  }
+                  description="Customers with email"
+                  accent="blue"
+                />
+
+                <SummaryCard
+                  label="Missing Email"
+                  value={
+                    customersWithoutEmail
+                  }
+                  description="Contact records incomplete"
+                  accent={
+                    customersWithoutEmail > 0
+                      ? "orange"
+                      : "neutral"
+                  }
                 />
               </div>
 
-              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-                  <div>
-                    <label
-                      htmlFor="customer-search"
-                      className="block text-sm font-semibold text-slate-700"
+              <section className="dd-customers__controls">
+                <div className="dd-customers__search">
+                  <label htmlFor="customer-search">
+                    Search Customers
+                  </label>
+
+                  <div className="dd-customers__search-input">
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
-                      Search customers
-                    </label>
+                      <circle
+                        cx="11"
+                        cy="11"
+                        r="6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+
+                      <path
+                        d="m16 16 4 4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
 
                     <input
                       id="customer-search"
                       type="search"
                       value={searchTerm}
                       onChange={(event) =>
-                        setSearchTerm(event.target.value)
+                        setSearchTerm(
+                          event.target.value,
+                        )
                       }
-                      placeholder="Search business, contact, phone, email, address, or ID"
-                      className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100"
+                      placeholder="Business, contact, phone, email, address, or ID"
                     />
+
+                    {searchTerm.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSearchTerm("")
+                        }
+                        className="dd-customers__clear"
+                        aria-label="Clear customer search"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSortDirection(
+                      (currentDirection) =>
+                        currentDirection ===
+                        "asc"
+                          ? "desc"
+                          : "asc",
+                    )
+                  }
+                  className="dd-customers__sort"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 5v14M5 8l3-3 3 3M16 19V5M13 16l3 3 3-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+
+                  <span>
+                    {sortDirection === "asc"
+                      ? "A — Z"
+                      : "Z — A"}
+                  </span>
+                </button>
+              </section>
+
+              <section className="dd-customers__directory">
+                <div className="dd-customers__directory-header">
+                  <div>
+                    <p className="dd-label">
+                      Customer Directory
+                    </p>
+
+                    <h2>
+                      Account Overview
+                    </h2>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSortDirection((currentDirection) =>
-                        currentDirection === "asc" ? "desc" : "asc",
-                      )
-                    }
-                    className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                  >
-                    Sort:{" "}
-                    {sortDirection === "asc" ? "A to Z" : "Z to A"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="border-b border-slate-200 px-6 py-5">
-                  <h3 className="text-xl font-bold text-slate-950">
-                    Customer Directory
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-600">
-                    Showing {filteredCustomers.length} of{" "}
-                    {customers.length} customers.
+                  <p className="dd-customers__result-count">
+                    Showing{" "}
+                    <strong>
+                      {
+                        filteredCustomers.length
+                      }
+                    </strong>{" "}
+                    of{" "}
+                    <strong>
+                      {customers.length}
+                    </strong>
                   </p>
                 </div>
 
-                {filteredCustomers.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="font-semibold text-slate-800">
-                      No customers found
-                    </p>
+                {filteredCustomers.length ===
+                0 ? (
+                  <div className="dd-customers__empty">
+                    <div className="dd-customers__empty-icon">
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 2a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 21v-2a6 6 0 0 1 12 0v2m1-5c3 0 5 1.8 5 4v1"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      Add a customer or try changing your search term.
-                    </p>
+                    <div>
+                      <strong>
+                        No customers found
+                      </strong>
+
+                      <p>
+                        Add a customer or
+                        adjust your search.
+                      </p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <TableHeading>Business</TableHeading>
-                          <TableHeading>Contact</TableHeading>
-                          <TableHeading>Phone</TableHeading>
-                          <TableHeading>Email</TableHeading>
-                          <TableHeading>Location</TableHeading>
-                          <TableHeading>Customer ID</TableHeading>
-                        </tr>
-                      </thead>
+                  <>
+                    <div className="dd-customers__desktop-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <TableHeading>
+                              Business
+                            </TableHeading>
 
-                      <tbody className="divide-y divide-slate-200">
-                        {filteredCustomers.map((customer) => (
-                          <tr
-                            key={customer.customerId}
-                            className="hover:bg-slate-50"
-                          >
-                            <TableCell>
-                              <p className="font-semibold text-slate-950">
-                                {customer.businessName}
-                              </p>
-                            </TableCell>
+                            <TableHeading>
+                              Contact
+                            </TableHeading>
 
-                            <TableCell>
-                              <p className="text-slate-800">
-                                {customer.contactName}
-                              </p>
-                            </TableCell>
+                            <TableHeading>
+                              Phone
+                            </TableHeading>
 
-                            <TableCell>
-                              <a
-                                href={`tel:${customer.phone}`}
-                                className="font-medium text-red-700 hover:underline"
-                              >
-                                {customer.phone}
-                              </a>
-                            </TableCell>
+                            <TableHeading>
+                              Email
+                            </TableHeading>
 
-                            <TableCell>
-                              {customer.email ? (
-                                <a
-                                  href={`mailto:${customer.email}`}
-                                  className="font-medium text-red-700 hover:underline"
-                                >
-                                  {customer.email}
-                                </a>
-                              ) : (
-                                <span className="text-sm text-slate-400">
-                                  Not provided
-                                </span>
-                              )}
-                            </TableCell>
+                            <TableHeading>
+                              Location
+                            </TableHeading>
 
-                            <TableCell>
-                              <p className="max-w-sm text-slate-700">
-                                {customer.locationAddress}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <p
-                                title={customer.customerId}
-                                className="max-w-44 truncate text-xs text-slate-500"
-                              >
-                                {customer.customerId}
-                              </p>
-                            </TableCell>
+                            <TableHeading>
+                              Customer ID
+                            </TableHeading>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+
+                        <tbody>
+                          {filteredCustomers.map(
+                            (customer) => (
+                              <CustomerTableRow
+                                key={
+                                  customer.customerId
+                                }
+                                customer={
+                                  customer
+                                }
+                              />
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="dd-customers__mobile-list">
+                      {filteredCustomers.map(
+                        (customer) => (
+                          <CustomerMobileCard
+                            key={
+                              customer.customerId
+                            }
+                            customer={
+                              customer
+                            }
+                          />
+                        ),
+                      )}
+                    </div>
+                  </>
                 )}
-              </div>
+              </section>
             </>
           )}
         </div>
@@ -343,30 +521,168 @@ export default function OwnerCustomersPage() {
   );
 }
 
-type SummaryCardProps = {
-  label: string;
-  value: number;
-};
-
-function SummaryCard({
-  label,
-  value,
-}: SummaryCardProps) {
+function CustomerTableRow({
+  customer,
+}: {
+  customer: Customer;
+}) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">
-        {label}
-      </p>
+    <tr>
+      <TableCell>
+        <div className="dd-customers__business">
+          <div className="dd-customers__business-marker" />
 
-      <p className="mt-3 text-4xl font-bold text-slate-950">
-        {value}
-      </p>
+          <div>
+            <p className="dd-customers__business-name">
+              {customer.businessName}
+            </p>
+
+            <p className="dd-customers__customer-id">
+              {customer.customerId}
+            </p>
+          </div>
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <span className="dd-customers__contact">
+          {customer.contactName}
+        </span>
+      </TableCell>
+
+      <TableCell>
+        <a
+          href={`tel:${customer.phone}`}
+          className="dd-customers__link"
+        >
+          {customer.phone}
+        </a>
+      </TableCell>
+
+      <TableCell>
+        {customer.email ? (
+          <a
+            href={`mailto:${customer.email}`}
+            className="dd-customers__link"
+          >
+            {customer.email}
+          </a>
+        ) : (
+          <span className="dd-customers__missing">
+            Not provided
+          </span>
+        )}
+      </TableCell>
+
+      <TableCell>
+        <span className="dd-customers__location">
+          {customer.locationAddress}
+        </span>
+      </TableCell>
+
+      <TableCell>
+        <span
+          className="dd-customers__id"
+          title={customer.customerId}
+        >
+          {customer.customerId}
+        </span>
+      </TableCell>
+    </tr>
+  );
+}
+
+function CustomerMobileCard({
+  customer,
+}: {
+  customer: Customer;
+}) {
+  return (
+    <article className="dd-customers__mobile-card">
+      <div className="dd-customers__mobile-top">
+        <div className="dd-customers__business">
+          <div className="dd-customers__business-marker" />
+
+          <div>
+            <p className="dd-customers__business-name">
+              {customer.businessName}
+            </p>
+
+            <p className="dd-customers__contact">
+              {customer.contactName}
+            </p>
+          </div>
+        </div>
+
+        <span
+          className={[
+            "dd-customers__record-status",
+            customer.email
+              ? "dd-customers__record-status--complete"
+              : "dd-customers__record-status--attention",
+          ].join(" ")}
+        >
+          <span />
+
+          {customer.email
+            ? "Contact Ready"
+            : "Email Missing"}
+        </span>
+      </div>
+
+      <div className="dd-customers__mobile-contact">
+        <a
+          href={`tel:${customer.phone}`}
+        >
+          <span>Phone</span>
+
+          <strong>
+            {customer.phone}
+          </strong>
+        </a>
+
+        <div>
+          <span>Email</span>
+
+          {customer.email ? (
+            <a
+              href={`mailto:${customer.email}`}
+            >
+              {customer.email}
+            </a>
+          ) : (
+            <strong className="dd-customers__mobile-missing">
+              Not provided
+            </strong>
+          )}
+        </div>
+      </div>
+
+      <div className="dd-customers__mobile-location">
+        <span>
+          Location
+        </span>
+
+        <p>
+          {customer.locationAddress}
+        </p>
+      </div>
+
+      <div className="dd-customers__mobile-footer">
+        <span>
+          Customer ID
+        </span>
+
+        <strong>
+          {customer.customerId}
+        </strong>
+      </div>
     </article>
   );
 }
 
 type TableContentProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function TableHeading({
@@ -375,7 +691,7 @@ function TableHeading({
   return (
     <th
       scope="col"
-      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500"
+      className="dd-customers__th"
     >
       {children}
     </th>
@@ -386,7 +702,7 @@ function TableCell({
   children,
 }: TableContentProps) {
   return (
-    <td className="px-6 py-5 align-top">
+    <td className="dd-customers__td">
       {children}
     </td>
   );

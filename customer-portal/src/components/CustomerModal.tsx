@@ -1,12 +1,19 @@
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  type FormEvent,
+} from "react";
 
-import type { CreateCustomerInput } from "../types/customer";
+import type {
+  CreateCustomerInput,
+} from "../types/customer";
 
 type CustomerModalProps = {
   open: boolean;
   loading: boolean;
   onClose: () => void;
-  onCreate: (customer: CreateCustomerInput) => Promise<void>;
+  onCreate: (
+    customer: CreateCustomerInput,
+  ) => Promise<void>;
 };
 
 const EMPTY_FORM: CreateCustomerInput = {
@@ -22,14 +29,21 @@ export default function CustomerModal({
   onClose,
   onCreate,
 }: CustomerModalProps) {
-  const [form, setForm] = useState<CreateCustomerInput>(EMPTY_FORM);
-  const [error, setError] = useState("");
+  const [form, setForm] =
+    useState<CreateCustomerInput>(
+      EMPTY_FORM,
+    );
+
+  const [error, setError] =
+    useState("");
 
   if (!open) {
     return null;
   }
 
-  function updateField<K extends keyof CreateCustomerInput>(
+  function updateField<
+    K extends keyof CreateCustomerInput,
+  >(
     key: K,
     value: CreateCustomerInput[K],
   ) {
@@ -39,8 +53,11 @@ export default function CustomerModal({
     }));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
+
     setError("");
 
     if (
@@ -49,24 +66,31 @@ export default function CustomerModal({
       !form.phone.trim() ||
       !form.locationAddress.trim()
     ) {
-      setError("Please complete all required fields.");
+      setError(
+        "Please complete all required fields.",
+      );
+
       return;
     }
 
     try {
       await onCreate({
-        businessName: form.businessName.trim(),
-        contactName: form.contactName.trim(),
-        phone: form.phone.trim(),
-        locationAddress: form.locationAddress.trim(),
+        businessName:
+          form.businessName.trim(),
+        contactName:
+          form.contactName.trim(),
+        phone:
+          form.phone.trim(),
+        locationAddress:
+          form.locationAddress.trim(),
       });
 
       setForm(EMPTY_FORM);
       onClose();
-    } catch (error) {
+    } catch (submitError) {
       setError(
-        error instanceof Error
-          ? error.message
+        submitError instanceof Error
+          ? submitError.message
           : "Unable to create customer.",
       );
     }
@@ -83,23 +107,38 @@ export default function CustomerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-customer-title"
+      className="dd-customer-modal"
+      role="presentation"
     >
-      <div className="w-full max-w-xl rounded-2xl bg-white p-8 shadow-2xl">
-        <div className="flex items-start justify-between gap-4">
+      <button
+        type="button"
+        className="dd-customer-modal__backdrop"
+        onClick={handleClose}
+        aria-label="Close add customer dialog"
+        disabled={loading}
+      />
+
+      <div
+        className="dd-customer-modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-customer-title"
+      >
+        <header className="dd-customer-modal__header">
           <div>
-            <h2
-              id="add-customer-title"
-              className="text-2xl font-bold text-slate-900"
-            >
+            <div className="dd-customer-modal__eyebrow">
+              <span />
+              Customer Operations
+            </div>
+
+            <h2 id="add-customer-title">
               Add Customer
             </h2>
 
-            <p className="mt-2 text-sm text-slate-600">
-              Create a new business customer.
+            <p>
+              Create a new business
+              customer record for orders
+              and invoicing.
             </p>
           </div>
 
@@ -108,75 +147,187 @@ export default function CustomerModal({
             onClick={handleClose}
             disabled={loading}
             aria-label="Close customer form"
-            className="rounded-lg px-3 py-2 text-xl font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="dd-customer-modal__close"
           >
-            ×
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M7 7l10 10M17 7 7 17"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
-        </div>
+        </header>
 
         <form
-          className="mt-6 space-y-4"
-          onSubmit={(event) => void handleSubmit(event)}
+          className="dd-customer-modal__form"
+          onSubmit={(event) =>
+            void handleSubmit(event)
+          }
         >
-          <Input
-            id="business-name"
-            label="Business Name"
-            required
-            value={form.businessName}
-            onChange={(value) => updateField("businessName", value)}
-          />
-
-          <Input
-            id="contact-name"
-            label="Contact Name"
-            required
-            value={form.contactName}
-            onChange={(value) => updateField("contactName", value)}
-          />
-
-          <Input
-            id="customer-phone"
-            label="Phone"
-            type="tel"
-            required
-            value={form.phone}
-            onChange={(value) => updateField("phone", value)}
-          />
-
-          <Input
-            id="location-address"
-            label="Location Address"
-            required
-            value={form.locationAddress}
-            onChange={(value) => updateField("locationAddress", value)}
-          />
-
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-semibold text-red-700">
-                {error}
-              </p>
+            <div
+              className="dd-customer-modal__error"
+              role="alert"
+            >
+              <div className="dd-customer-modal__error-icon">
+                !
+              </div>
+
+              <div>
+                <strong>
+                  Customer could not be saved
+                </strong>
+
+                <p>
+                  {error}
+                </p>
+              </div>
             </div>
           )}
 
-          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Cancel
-            </button>
+          <section className="dd-customer-modal__section">
+            <div className="dd-customer-modal__section-heading">
+              <span>01</span>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-red-700 px-5 py-3 font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Creating..." : "Create Customer"}
-            </button>
-          </div>
+              <div>
+                <strong>
+                  Business
+                </strong>
+
+                <p>
+                  Customer organization
+                  information.
+                </p>
+              </div>
+            </div>
+
+            <div className="dd-customer-modal__fields">
+              <Input
+                id="business-name"
+                label="Business Name"
+                required
+                value={form.businessName}
+                onChange={(value) =>
+                  updateField(
+                    "businessName",
+                    value,
+                  )
+                }
+                placeholder="South Florida Distribution Co."
+                autoFocus
+                disabled={loading}
+              />
+
+              <Input
+                id="contact-name"
+                label="Primary Contact"
+                required
+                value={form.contactName}
+                onChange={(value) =>
+                  updateField(
+                    "contactName",
+                    value,
+                  )
+                }
+                placeholder="Alex Morgan"
+                disabled={loading}
+              />
+            </div>
+          </section>
+
+          <section className="dd-customer-modal__section">
+            <div className="dd-customer-modal__section-heading">
+              <span>02</span>
+
+              <div>
+                <strong>
+                  Contact
+                </strong>
+
+                <p>
+                  Primary business
+                  communication.
+                </p>
+              </div>
+            </div>
+
+            <div className="dd-customer-modal__fields">
+              <Input
+                id="customer-phone"
+                label="Phone"
+                type="tel"
+                required
+                value={form.phone}
+                onChange={(value) =>
+                  updateField(
+                    "phone",
+                    value,
+                  )
+                }
+                placeholder="(305) 555-0182"
+                disabled={loading}
+              />
+
+              <Input
+                id="location-address"
+                label="Location Address"
+                required
+                value={
+                  form.locationAddress
+                }
+                onChange={(value) =>
+                  updateField(
+                    "locationAddress",
+                    value,
+                  )
+                }
+                placeholder="123 Warehouse Blvd, Miami, FL"
+                disabled={loading}
+              />
+            </div>
+          </section>
+
+          <footer className="dd-customer-modal__footer">
+            <div className="dd-customer-modal__footer-note">
+              <span />
+              New customer record
+            </div>
+
+            <div className="dd-customer-modal__actions">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="dd-customer-modal__cancel"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="dd-customer-modal__submit"
+              >
+                {loading ? (
+                  <>
+                    <span className="dd-customer-modal__spinner" />
+                    Creating
+                  </>
+                ) : (
+                  <>
+                    <span>+</span>
+                    Create Customer
+                  </>
+                )}
+              </button>
+            </div>
+          </footer>
         </form>
       </div>
     </div>
@@ -189,7 +340,12 @@ type InputProps = {
   value: string;
   type?: "text" | "tel";
   required?: boolean;
-  onChange: (value: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  onChange: (
+    value: string,
+  ) => void;
 };
 
 function Input({
@@ -198,16 +354,23 @@ function Input({
   value,
   type = "text",
   required = false,
+  placeholder,
+  autoFocus = false,
+  disabled = false,
   onChange,
 }: InputProps) {
   return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block text-sm font-semibold text-slate-700"
-      >
-        {label}
-        {required && <span className="text-red-700"> *</span>}
+    <div className="dd-customer-modal__field">
+      <label htmlFor={id}>
+        <span>
+          {label}
+        </span>
+
+        {required && (
+          <span className="dd-customer-modal__required">
+            Required
+          </span>
+        )}
       </label>
 
       <input
@@ -215,8 +378,14 @@ function Input({
         type={type}
         required={required}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100"
+        onChange={(event) =>
+          onChange(
+            event.target.value,
+          )
+        }
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        disabled={disabled}
       />
     </div>
   );

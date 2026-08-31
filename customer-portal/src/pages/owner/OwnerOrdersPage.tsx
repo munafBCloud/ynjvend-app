@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 
 import ErrorMessage from "../../components/ErrorMessage";
 import LoadingState from "../../components/LoadingState";
@@ -9,6 +14,7 @@ import {
   getOrders,
   updateOrderStatus as updateOrderStatusApi,
 } from "../../services/orders";
+
 import { getCustomers } from "../../services/customers";
 import { getInventory } from "../../services/inventory";
 
@@ -16,10 +22,10 @@ import {
   formatCurrency,
   formatDate,
 } from "../../utils/formatters";
-import { getOrderStatusClasses } from "../../utils/status";
 
 import type { Customer } from "../../types/customer";
 import type { InventoryItem } from "../../types/inventory";
+
 import type {
   CreateOrderItem,
   Order,
@@ -34,48 +40,99 @@ const STATUS_FILTERS = [
   "Cancelled",
 ] as const;
 
-const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+const STATUS_TRANSITIONS: Record<
+  OrderStatus,
+  OrderStatus[]
+> = {
   New: ["New", "Preparing", "Cancelled"],
-  Preparing: ["Preparing", "Completed", "Cancelled"],
+  Preparing: [
+    "Preparing",
+    "Completed",
+    "Cancelled",
+  ],
   Completed: ["Completed"],
   Cancelled: ["Cancelled"],
 };
 
-type ProductQuantityMap = Record<string, number>;
+type ProductQuantityMap =
+  Record<string, number>;
 
 export default function OwnerOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [orders, setOrders] =
+    useState<Order[]>([]);
 
-  const [selectedStatuses, setSelectedStatuses] = useState<
+  const [customers, setCustomers] =
+    useState<Customer[]>([]);
+
+  const [inventory, setInventory] =
+    useState<InventoryItem[]>([]);
+
+  const [
+    selectedStatuses,
+    setSelectedStatuses,
+  ] = useState<
     Record<string, OrderStatus>
   >({});
 
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(
-    null,
+  const [
+    expandedOrderId,
+    setExpandedOrderId,
+  ] = useState<string | null>(null);
+
+  const [
+    updatingOrderId,
+    setUpdatingOrderId,
+  ] = useState<string | null>(null);
+
+  const [
+    showCreateOrderForm,
+    setShowCreateOrderForm,
+  ] = useState(false);
+
+  const [
+    selectedCustomerId,
+    setSelectedCustomerId,
+  ] = useState("");
+
+  const [
+    productQuantities,
+    setProductQuantities,
+  ] = useState<ProductQuantityMap>(
+    {},
   );
 
-  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(
-    null,
-  );
+  const [orderNotes, setOrderNotes] =
+    useState("");
 
-  const [showCreateOrderForm, setShowCreateOrderForm] =
-    useState(false);
+  const [
+    creatingOrder,
+    setCreatingOrder,
+  ] = useState(false);
 
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [productQuantities, setProductQuantities] =
-    useState<ProductQuantityMap>({});
-  const [orderNotes, setOrderNotes] = useState("");
-  const [creatingOrder, setCreatingOrder] = useState(false);
-  const [createOrderError, setCreateOrderError] = useState("");
+  const [
+    createOrderError,
+    setCreateOrderError,
+  ] = useState("");
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [updateError, setUpdateError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState("All");
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
+
+  const [updateError, setUpdateError] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     async function loadPageData() {
@@ -97,15 +154,26 @@ export default function OwnerOrdersPage() {
         setCustomers(loadedCustomers);
         setInventory(loadedInventory);
 
-        const initialStatuses: Record<string, OrderStatus> = {};
+        const initialStatuses:
+          Record<string, OrderStatus> =
+            {};
 
-        loadedOrders.forEach((order) => {
-          initialStatuses[order.orderId] = order.status;
-        });
+        loadedOrders.forEach(
+          (order) => {
+            initialStatuses[
+              order.orderId
+            ] = order.status;
+          },
+        );
 
-        setSelectedStatuses(initialStatuses);
+        setSelectedStatuses(
+          initialStatuses,
+        );
       } catch (loadError) {
-        console.error("Unable to load order data:", loadError);
+        console.error(
+          "Unable to load order data:",
+          loadError,
+        );
 
         setError(
           loadError instanceof Error
@@ -120,57 +188,127 @@ export default function OwnerOrdersPage() {
     void loadPageData();
   }, []);
 
-  const filteredOrders = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredOrders = useMemo(
+    () => {
+      const normalizedSearch =
+        searchTerm
+          .trim()
+          .toLowerCase();
 
-    return orders.filter((order) => {
-      const matchesStatus =
-        statusFilter === "All" || order.status === statusFilter;
+      return orders.filter(
+        (order) => {
+          const matchesStatus =
+            statusFilter === "All" ||
+            order.status ===
+              statusFilter;
 
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        order.businessName.toLowerCase().includes(normalizedSearch) ||
-        order.orderId.toLowerCase().includes(normalizedSearch) ||
-        order.items.some((item) =>
-          item.productName.toLowerCase().includes(normalizedSearch),
-        );
+          const matchesSearch =
+            normalizedSearch.length ===
+              0 ||
+            order.businessName
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            order.orderId
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            order.items.some((item) =>
+              item.productName
+                .toLowerCase()
+                .includes(
+                  normalizedSearch,
+                ),
+            );
 
-      return matchesStatus && matchesSearch;
-    });
-  }, [orders, searchTerm, statusFilter]);
+          return (
+            matchesStatus &&
+            matchesSearch
+          );
+        },
+      );
+    },
+    [
+      orders,
+      searchTerm,
+      statusFilter,
+    ],
+  );
 
-  const orderCounts = useMemo(() => {
-    return {
+  const orderCounts = useMemo(
+    () => ({
       total: orders.length,
-      new: orders.filter((order) => order.status === "New").length,
-      preparing: orders.filter(
-        (order) => order.status === "Preparing",
-      ).length,
-      completed: orders.filter(
-        (order) => order.status === "Completed",
-      ).length,
-    };
-  }, [orders]);
 
-  const selectedOrderItems = useMemo<CreateOrderItem[]>(() => {
-    return Object.entries(productQuantities)
-      .filter(([, quantity]) => quantity > 0)
-      .map(([productId, quantity]) => ({
-        productId,
-        quantity,
-      }));
-  }, [productQuantities]);
+      new: orders.filter(
+        (order) =>
+          order.status === "New",
+      ).length,
+
+      preparing: orders.filter(
+        (order) =>
+          order.status ===
+          "Preparing",
+      ).length,
+
+      completed: orders.filter(
+        (order) =>
+          order.status ===
+          "Completed",
+      ).length,
+    }),
+    [orders],
+  );
+
+  const selectedOrderItems =
+    useMemo<CreateOrderItem[]>(
+      () =>
+        Object.entries(
+          productQuantities,
+        )
+          .filter(
+            ([, quantity]) =>
+              quantity > 0,
+          )
+          .map(
+            ([
+              productId,
+              quantity,
+            ]) => ({
+              productId,
+              quantity,
+            }),
+          ),
+      [productQuantities],
+    );
+
+  const selectedCases = useMemo(
+    () =>
+      selectedOrderItems.reduce(
+        (total, item) =>
+          total + item.quantity,
+        0,
+      ),
+    [selectedOrderItems],
+  );
 
   function updateProductQuantity(
     productId: string,
     quantity: number,
   ) {
-    const safeQuantity = Math.max(0, Math.floor(quantity));
+    const safeQuantity = Math.max(
+      0,
+      Math.floor(quantity),
+    );
 
-    setProductQuantities((currentQuantities) => ({
-      ...currentQuantities,
-      [productId]: safeQuantity,
-    }));
+    setProductQuantities(
+      (currentQuantities) => ({
+        ...currentQuantities,
+        [productId]:
+          safeQuantity,
+      }),
+    );
   }
 
   function resetCreateOrderForm() {
@@ -186,16 +324,20 @@ export default function OwnerOrdersPage() {
   }
 
   async function handleCreateOrder(
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
     if (!selectedCustomerId) {
-      setCreateOrderError("Select a customer.");
+      setCreateOrderError(
+        "Select a customer.",
+      );
       return;
     }
 
-    if (selectedOrderItems.length === 0) {
+    if (
+      selectedOrderItems.length === 0
+    ) {
       setCreateOrderError(
         "Add at least one product with a quantity greater than zero.",
       );
@@ -208,30 +350,43 @@ export default function OwnerOrdersPage() {
       setSuccessMessage("");
       setUpdateError("");
 
-      const newOrder = await createOrder({
-        customerId: selectedCustomerId,
-        notes: orderNotes.trim(),
-        items: selectedOrderItems,
-      });
+      const newOrder =
+        await createOrder({
+          customerId:
+            selectedCustomerId,
+          notes: orderNotes.trim(),
+          items: selectedOrderItems,
+        });
 
-      setOrders((currentOrders) => [
-        newOrder,
-        ...currentOrders,
-      ]);
+      setOrders(
+        (currentOrders) => [
+          newOrder,
+          ...currentOrders,
+        ],
+      );
 
-      setSelectedStatuses((currentStatuses) => ({
-        ...currentStatuses,
-        [newOrder.orderId]: newOrder.status,
-      }));
+      setSelectedStatuses(
+        (currentStatuses) => ({
+          ...currentStatuses,
+          [newOrder.orderId]:
+            newOrder.status,
+        }),
+      );
 
       setSuccessMessage(
         `Order created successfully for ${newOrder.businessName}.`,
       );
 
       closeCreateOrderForm();
-      setExpandedOrderId(newOrder.orderId);
+
+      setExpandedOrderId(
+        newOrder.orderId,
+      );
     } catch (createError) {
-      console.error("Unable to create order:", createError);
+      console.error(
+        "Unable to create order:",
+        createError,
+      );
 
       setCreateOrderError(
         createError instanceof Error
@@ -243,41 +398,68 @@ export default function OwnerOrdersPage() {
     }
   }
 
-  async function handleUpdateOrderStatus(orderId: string) {
-    const selectedStatus = selectedStatuses[orderId];
-    const currentOrder = orders.find(
-      (order) => order.orderId === orderId,
-    );
+  async function handleUpdateOrderStatus(
+    orderId: string,
+  ) {
+    const selectedStatus =
+      selectedStatuses[orderId];
 
-    if (!selectedStatus || !currentOrder) {
-      setUpdateError("Select a valid order status.");
+    const currentOrder =
+      orders.find(
+        (order) =>
+          order.orderId ===
+          orderId,
+      );
+
+    if (
+      !selectedStatus ||
+      !currentOrder
+    ) {
+      setUpdateError(
+        "Select a valid order status.",
+      );
       return;
     }
 
-    if (selectedStatus === currentOrder.status) {
+    if (
+      selectedStatus ===
+      currentOrder.status
+    ) {
       return;
     }
 
     try {
-      setUpdatingOrderId(orderId);
+      setUpdatingOrderId(
+        orderId,
+      );
+
       setSuccessMessage("");
       setUpdateError("");
 
-      const updatedOrder = await updateOrderStatusApi(
-        orderId,
-        selectedStatus,
+      const updatedOrder =
+        await updateOrderStatusApi(
+          orderId,
+          selectedStatus,
+        );
+
+      setOrders(
+        (currentOrders) =>
+          currentOrders.map(
+            (order) =>
+              order.orderId ===
+              orderId
+                ? updatedOrder
+                : order,
+          ),
       );
 
-      setOrders((currentOrders) =>
-        currentOrders.map((order) =>
-          order.orderId === orderId ? updatedOrder : order,
-        ),
+      setSelectedStatuses(
+        (currentStatuses) => ({
+          ...currentStatuses,
+          [orderId]:
+            updatedOrder.status,
+        }),
       );
-
-      setSelectedStatuses((currentStatuses) => ({
-        ...currentStatuses,
-        [orderId]: updatedOrder.status,
-      }));
 
       setSuccessMessage(
         `Order status updated to ${updatedOrder.status}.`,
@@ -289,7 +471,8 @@ export default function OwnerOrdersPage() {
       );
 
       setUpdateError(
-        updateStatusError instanceof Error
+        updateStatusError instanceof
+          Error
           ? updateStatusError.message
           : "Unable to update order status.",
       );
@@ -298,47 +481,77 @@ export default function OwnerOrdersPage() {
     }
   }
 
-  function getTotalQuantity(order: Order) {
+  function getTotalQuantity(
+    order: Order,
+  ) {
     return order.items.reduce(
-      (total, item) => total + item.quantity,
+      (total, item) =>
+        total + item.quantity,
       0,
     );
   }
 
   return (
-    <section className="px-6 py-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <section className="dd-orders">
+      <div className="dd-orders__inner">
+        <header className="dd-orders__header">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-              Fulfillment
-            </p>
+            <div className="dd-orders__eyebrow">
+              <span />
+              Fulfillment Operations
+            </div>
 
-            <h2 className="mt-2 text-3xl font-bold text-slate-950">
+            <h1>
               Order Management
-            </h2>
+            </h1>
 
-            <p className="mt-3 text-slate-600">
-              Create distributor orders and manage fulfillment status.
+            <p>
+              Create distributor
+              orders and move
+              fulfillment from intake
+              through completion.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() =>
-              setShowCreateOrderForm((currentValue) => !currentValue)
-            }
-            className="w-fit rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800"
+            onClick={() => {
+              if (
+                showCreateOrderForm
+              ) {
+                closeCreateOrderForm();
+              } else {
+                setSuccessMessage(
+                  "",
+                );
+                setShowCreateOrderForm(
+                  true,
+                );
+              }
+            }}
+            className={[
+              "dd-orders__create-toggle",
+              showCreateOrderForm
+                ? "dd-orders__create-toggle--close"
+                : "",
+            ].join(" ")}
           >
-            {showCreateOrderForm ? "Close Form" : "Create Order"}
+            <span>
+              {showCreateOrderForm
+                ? "×"
+                : "+"}
+            </span>
+
+            {showCreateOrderForm
+              ? "Close Form"
+              : "Create Order"}
           </button>
-        </div>
+        </header>
 
         {successMessage && (
-          <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="font-semibold text-green-800">
-              {successMessage}
-            </p>
+          <div className="dd-orders__success">
+            <span />
+            {successMessage}
           </div>
         )}
 
@@ -346,213 +559,388 @@ export default function OwnerOrdersPage() {
           <ErrorMessage
             title="Unable to update order"
             message={updateError}
-            className="mt-6"
           />
         )}
 
         {showCreateOrderForm && (
           <form
-            onSubmit={handleCreateOrder}
-            className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            onSubmit={
+              handleCreateOrder
+            }
+            className="dd-order-create"
           >
-            <div className="border-b border-slate-200 pb-5">
-              <h3 className="text-xl font-bold text-slate-950">
-                Create New Order
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-600">
-                Select a customer and add inventory products.
-              </p>
-            </div>
-
-            {createOrderError && (
-              <ErrorMessage
-                title="Unable to create order"
-                message={createOrderError}
-                className="mt-5"
-              />
-            )}
-
-            <div className="mt-6">
-              <label
-                htmlFor="order-customer"
-                className="block text-sm font-semibold text-slate-700"
-              >
-                Customer
-              </label>
-
-              <select
-                id="order-customer"
-                value={selectedCustomerId}
-                onChange={(event) =>
-                  setSelectedCustomerId(event.target.value)
-                }
-                disabled={creatingOrder}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              >
-                <option value="">Select a customer</option>
-
-                {customers.map((customer) => (
-                  <option
-                    key={customer.customerId}
-                    value={customer.customerId}
-                  >
-                    {customer.businessName} — {customer.contactName}
-                  </option>
-                ))}
-              </select>
-
-              {customers.length === 0 && (
-                <p className="mt-2 text-sm text-amber-700">
-                  No customers are available. Add a customer first.
-                </p>
-              )}
-            </div>
-
-            <div className="mt-7">
+            <header className="dd-order-create__header">
               <div>
-                <h4 className="font-bold text-slate-950">
-                  Inventory Products
-                </h4>
+                <div className="dd-order-create__eyebrow">
+                  New Order
+                </div>
 
-                <p className="mt-1 text-sm text-slate-600">
-                  Enter the number of cases for each product.
+                <h2>
+                  Build Distributor
+                  Order
+                </h2>
+
+                <p>
+                  Select the customer
+                  and cases required.
+                  Final pricing is
+                  calculated by the
+                  order service.
                 </p>
               </div>
 
-              {inventory.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-semibold text-amber-800">
-                    No inventory products are available.
+              <div className="dd-order-create__selection">
+                <span>
+                  {
+                    selectedOrderItems.length
+                  }{" "}
+                  Products
+                </span>
+
+                <strong>
+                  {selectedCases} Cases
+                </strong>
+              </div>
+            </header>
+
+            {createOrderError && (
+              <div
+                className="dd-order-create__error"
+                role="alert"
+              >
+                <span>!</span>
+
+                <div>
+                  <strong>
+                    Order could not
+                    be created
+                  </strong>
+
+                  <p>
+                    {createOrderError}
                   </p>
                 </div>
-              ) : (
-                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                  <div className="divide-y divide-slate-200">
-                    {inventory.map((product) => {
-                      const quantity =
-                        productQuantities[product.productId] || 0;
+              </div>
+            )}
 
-                      return (
-                        <div
-                          key={product.productId}
-                          className="grid gap-4 bg-white px-4 py-4 sm:grid-cols-[1fr_auto] sm:items-center"
-                        >
-                          <div>
-                            <p className="font-semibold text-slate-950">
-                              {product.productName}
-                            </p>
+            <section className="dd-order-create__section">
+              <div className="dd-order-create__section-label">
+                <span>01</span>
 
-                            <p className="mt-1 text-sm text-slate-500">
-                              {product.brand} ·{" "}
-                              {product.quantityInStock} in stock
-                            </p>
+                <div>
+                  <strong>
+                    Customer
+                  </strong>
 
-                            <p className="mt-1 text-sm font-semibold text-slate-700">
-                              {formatCurrency(product.sellingPrice)} / case
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateProductQuantity(
-                                  product.productId,
-                                  quantity - 1,
-                                )
-                              }
-                              disabled={
-                                creatingOrder || quantity === 0
-                              }
-                              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              −
-                            </button>
-
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={quantity}
-                              onChange={(event) =>
-                                updateProductQuantity(
-                                  product.productId,
-                                  Number(event.target.value),
-                                )
-                              }
-                              disabled={creatingOrder}
-                              aria-label={`Quantity for ${product.productName}`}
-                              className="h-10 w-20 rounded-lg border border-slate-300 px-3 text-center font-semibold text-slate-950 outline-none focus:border-red-700"
-                            />
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateProductQuantity(
-                                  product.productId,
-                                  quantity + 1,
-                                )
-                              }
-                              disabled={creatingOrder}
-                              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <p>
+                    Select the account
+                    placing this order.
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="mt-7">
-              <label
-                htmlFor="order-notes"
-                className="block text-sm font-semibold text-slate-700"
-              >
-                Order Notes
-              </label>
+              <div className="dd-order-create__section-content">
+                <label
+                  htmlFor="order-customer"
+                  className="dd-order-create__field-label"
+                >
+                  Business Customer
+                </label>
 
-              <textarea
-                id="order-notes"
-                rows={4}
-                value={orderNotes}
-                onChange={(event) =>
-                  setOrderNotes(event.target.value)
-                }
-                disabled={creatingOrder}
-                placeholder="Example: Deliver Friday morning"
-                className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              />
-            </div>
+                <select
+                  id="order-customer"
+                  value={
+                    selectedCustomerId
+                  }
+                  onChange={(event) =>
+                    setSelectedCustomerId(
+                      event.target
+                        .value,
+                    )
+                  }
+                  disabled={
+                    creatingOrder
+                  }
+                  className="dd-order-create__select"
+                >
+                  <option value="">
+                    Select a customer
+                  </option>
 
-            <div className="mt-7 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeCreateOrderForm}
-                disabled={creatingOrder}
-                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-              >
-                Cancel
-              </button>
+                  {customers.map(
+                    (customer) => (
+                      <option
+                        key={
+                          customer.customerId
+                        }
+                        value={
+                          customer.customerId
+                        }
+                      >
+                        {
+                          customer.businessName
+                        }{" "}
+                        —{" "}
+                        {
+                          customer.contactName
+                        }
+                      </option>
+                    ),
+                  )}
+                </select>
 
-              <button
-                type="submit"
-                disabled={
-                  creatingOrder ||
-                  customers.length === 0 ||
-                  inventory.length === 0
-                }
-                className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {creatingOrder
-                  ? "Creating Order..."
-                  : `Create Order (${selectedOrderItems.length} products)`}
-              </button>
-            </div>
+                {customers.length ===
+                  0 && (
+                  <p className="dd-order-create__warning">
+                    No customers are
+                    available. Add a
+                    customer first.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="dd-order-create__section">
+              <div className="dd-order-create__section-label">
+                <span>02</span>
+
+                <div>
+                  <strong>
+                    Products
+                  </strong>
+
+                  <p>
+                    Enter case
+                    quantities for
+                    this order.
+                  </p>
+                </div>
+              </div>
+
+              <div className="dd-order-create__section-content">
+                {inventory.length ===
+                0 ? (
+                  <div className="dd-order-create__warning">
+                    No inventory
+                    products are
+                    available.
+                  </div>
+                ) : (
+                  <div className="dd-order-create__products">
+                    {inventory.map(
+                      (product) => {
+                        const quantity =
+                          productQuantities[
+                            product
+                              .productId
+                          ] || 0;
+
+                        const selected =
+                          quantity > 0;
+
+                        return (
+                          <article
+                            key={
+                              product.productId
+                            }
+                            className={[
+                              "dd-order-create__product",
+                              selected
+                                ? "dd-order-create__product--selected"
+                                : "",
+                            ].join(" ")}
+                          >
+                            <div className="dd-order-create__product-info">
+                              <div className="dd-order-create__product-marker" />
+
+                              <div>
+                                <strong>
+                                  {
+                                    product.productName
+                                  }
+                                </strong>
+
+                                <p>
+                                  {
+                                    product.brand
+                                  }{" "}
+                                  ·{" "}
+                                  {
+                                    product.quantityInStock
+                                  }{" "}
+                                  in stock
+                                </p>
+
+                                <span>
+                                  {formatCurrency(
+                                    product.sellingPrice,
+                                  )}{" "}
+                                  / case
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="dd-order-create__quantity">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateProductQuantity(
+                                    product.productId,
+                                    quantity -
+                                      1,
+                                  )
+                                }
+                                disabled={
+                                  creatingOrder ||
+                                  quantity ===
+                                    0
+                                }
+                                aria-label={`Decrease ${product.productName} quantity`}
+                              >
+                                −
+                              </button>
+
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={
+                                  quantity
+                                }
+                                onChange={(
+                                  event,
+                                ) =>
+                                  updateProductQuantity(
+                                    product.productId,
+                                    Number(
+                                      event
+                                        .target
+                                        .value,
+                                    ),
+                                  )
+                                }
+                                disabled={
+                                  creatingOrder
+                                }
+                                aria-label={`Quantity for ${product.productName}`}
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateProductQuantity(
+                                    product.productId,
+                                    quantity +
+                                      1,
+                                  )
+                                }
+                                disabled={
+                                  creatingOrder
+                                }
+                                aria-label={`Increase ${product.productName} quantity`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      },
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="dd-order-create__section">
+              <div className="dd-order-create__section-label">
+                <span>03</span>
+
+                <div>
+                  <strong>
+                    Notes
+                  </strong>
+
+                  <p>
+                    Optional
+                    fulfillment
+                    instructions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="dd-order-create__section-content">
+                <label
+                  htmlFor="order-notes"
+                  className="dd-order-create__field-label"
+                >
+                  Order Notes
+                </label>
+
+                <textarea
+                  id="order-notes"
+                  rows={3}
+                  value={orderNotes}
+                  onChange={(event) =>
+                    setOrderNotes(
+                      event.target
+                        .value,
+                    )
+                  }
+                  disabled={
+                    creatingOrder
+                  }
+                  placeholder="Example: Deliver Friday morning"
+                  className="dd-order-create__textarea"
+                />
+              </div>
+            </section>
+
+            <footer className="dd-order-create__footer">
+              <div>
+                <span>
+                  {
+                    selectedOrderItems.length
+                  }{" "}
+                  products selected
+                </span>
+
+                <strong>
+                  {selectedCases} total
+                  cases
+                </strong>
+              </div>
+
+              <div className="dd-order-create__actions">
+                <button
+                  type="button"
+                  onClick={
+                    closeCreateOrderForm
+                  }
+                  disabled={
+                    creatingOrder
+                  }
+                  className="dd-order-create__cancel"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    creatingOrder ||
+                    customers.length ===
+                      0 ||
+                    inventory.length ===
+                      0
+                  }
+                  className="dd-order-create__submit"
+                >
+                  {creatingOrder
+                    ? "Creating..."
+                    : `Create Order (${selectedOrderItems.length})`}
+                </button>
+              </div>
+            </footer>
           </form>
         )}
 
@@ -569,392 +957,662 @@ export default function OwnerOrdersPage() {
 
         {!loading && !error && (
           <>
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="dd-orders__metrics">
               <SummaryCard
                 label="Total Orders"
-                value={orderCounts.total}
+                value={
+                  orderCounts.total
+                }
+                description="All order records"
+                accent="neutral"
               />
 
-              <SummaryCard label="New" value={orderCounts.new} />
+              <SummaryCard
+                label="New"
+                value={
+                  orderCounts.new
+                }
+                description="Awaiting fulfillment"
+                accent="orange"
+              />
 
               <SummaryCard
                 label="Preparing"
-                value={orderCounts.preparing}
+                value={
+                  orderCounts.preparing
+                }
+                description="Currently in progress"
+                accent="blue"
               />
 
               <SummaryCard
                 label="Completed"
-                value={orderCounts.completed}
+                value={
+                  orderCounts.completed
+                }
+                description="Fulfilled orders"
+                accent="neutral"
               />
             </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+            <section className="dd-orders__controls">
+              <div className="dd-orders__search">
+                <label htmlFor="order-search">
+                  Search Orders
+                </label>
+
                 <div>
-                  <label
-                    htmlFor="order-search"
-                    className="block text-sm font-semibold text-slate-700"
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    Search orders
-                  </label>
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+
+                    <path
+                      d="m16 16 4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
 
                   <input
                     id="order-search"
                     type="search"
                     value={searchTerm}
                     onChange={(event) =>
-                      setSearchTerm(event.target.value)
+                      setSearchTerm(
+                        event.target
+                          .value,
+                      )
                     }
-                    placeholder="Search business, product, or order ID"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100"
+                    placeholder="Business, product, or order ID"
                   />
+
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSearchTerm(
+                          "",
+                        )
+                      }
+                      aria-label="Clear order search"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
+              </div>
+
+              <div className="dd-orders__filters">
+                <span>
+                  Status
+                </span>
 
                 <div>
-                  <p className="text-sm font-semibold text-slate-700">
-                    Filter by status
-                  </p>
-
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {STATUS_FILTERS.map((status) => (
+                  {STATUS_FILTERS.map(
+                    (status) => (
                       <button
                         key={status}
                         type="button"
-                        onClick={() => setStatusFilter(status)}
-                        className={[
-                          "rounded-xl px-4 py-3 text-sm font-semibold transition",
-                          statusFilter === status
-                            ? "bg-slate-950 text-white"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200",
-                        ].join(" ")}
+                        onClick={() =>
+                          setStatusFilter(
+                            status,
+                          )
+                        }
+                        className={
+                          statusFilter ===
+                          status
+                            ? "dd-orders__filter--active"
+                            : ""
+                        }
                       >
                         {status}
                       </button>
-                    ))}
-                  </div>
+                    ),
+                  )}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <h3 className="text-xl font-bold text-slate-950">
-                  Distributor Orders
-                </h3>
+            <section className="dd-orders__queue">
+              <header className="dd-orders__queue-header">
+                <div>
+                  <div className="dd-label">
+                    Fulfillment Queue
+                  </div>
 
-                <p className="mt-1 text-sm text-slate-600">
-                  Showing {filteredOrders.length} of {orders.length}{" "}
-                  orders.
+                  <h2>
+                    Distributor Orders
+                  </h2>
+                </div>
+
+                <p>
+                  Showing{" "}
+                  <strong>
+                    {
+                      filteredOrders.length
+                    }
+                  </strong>{" "}
+                  of{" "}
+                  <strong>
+                    {orders.length}
+                  </strong>
                 </p>
-              </div>
+              </header>
 
-              {filteredOrders.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="font-semibold text-slate-800">
+              {filteredOrders.length ===
+              0 ? (
+                <div className="dd-orders__empty">
+                  <div>
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M5 7h14l-1 13H6L5 7Zm3 0V5a4 4 0 0 1 8 0v2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      />
+                    </svg>
+                  </div>
+
+                  <strong>
                     No orders found
-                  </p>
+                  </strong>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Try changing the search term or status filter.
+                  <p>
+                    Adjust your search
+                    or status filter.
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-200">
-                  {filteredOrders.map((order) => {
-                    const selectedStatus =
-                      selectedStatuses[order.orderId] ||
-                      order.status;
-
-                    const statusHasChanged =
-                      selectedStatus !== order.status;
-
-                    const isUpdating =
-                      updatingOrderId === order.orderId;
-
-                    const isExpanded =
-                      expandedOrderId === order.orderId;
-
-                    const allowedStatuses =
-                      STATUS_TRANSITIONS[order.status];
-
-                    return (
-                      <article key={order.orderId}>
-                        <div className="grid gap-5 px-6 py-5 lg:grid-cols-[1.5fr_auto_auto_auto_auto_auto] lg:items-center">
-                          <div>
-                            <p className="font-bold text-slate-950">
-                              {order.businessName}
-                            </p>
-
-                            <p className="mt-1 max-w-80 truncate text-xs text-slate-500">
-                              {order.orderId}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              Products
-                            </p>
-
-                            <p className="mt-1 font-semibold text-slate-950">
-                              {order.items.length}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              Cases
-                            </p>
-
-                            <p className="mt-1 font-semibold text-slate-950">
-                              {getTotalQuantity(order)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              Total
-                            </p>
-
-                            <p className="mt-1 font-bold text-slate-950">
-                              {formatCurrency(order.total)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <span
-                              className={[
-                                "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                getOrderStatusClasses(order.status),
-                              ].join(" ")}
-                            >
-                              {order.status}
-                            </span>
-
-                            <p className="mt-2 whitespace-nowrap text-xs text-slate-500">
-                              {formatDate(order.createdAt, "dateTime")}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedOrderId(
-                                isExpanded ? null : order.orderId,
-                              )
-                            }
-                            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                          >
-                            {isExpanded
-                              ? "Hide Details"
-                              : "View Details"}
-                          </button>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="border-t border-slate-200 bg-slate-50 px-6 py-6">
-                            <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-                              <div>
-                                <h4 className="font-bold text-slate-950">
-                                  Order Items
-                                </h4>
-
-                                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                  <div className="divide-y divide-slate-200">
-                                    {order.items.map((item) => (
-                                      <div
-                                        key={item.productId}
-                                        className="flex items-center justify-between gap-4 px-4 py-4"
-                                      >
-                                        <div>
-                                          <p className="font-semibold text-slate-950">
-                                            {item.productName}
-                                          </p>
-
-                                          <p className="mt-1 text-xs text-slate-500">
-                                            {item.productId}
-                                          </p>
-
-                                          <p className="mt-2 text-sm text-slate-600">
-                                            {item.quantity} ×{" "}
-                                            {formatCurrency(item.unitPrice)}
-                                          </p>
-                                        </div>
-
-                                        <div className="text-right">
-                                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                            Line Total
-                                          </p>
-
-                                          <p className="mt-1 font-bold text-slate-950">
-                                            {formatCurrency(item.lineTotal)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <div className="mt-5 rounded-xl border border-slate-200 bg-white p-5">
-                                  <h4 className="font-bold text-slate-950">
-                                    Order Summary
-                                  </h4>
-
-                                  <div className="mt-4 space-y-3 text-sm">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-600">
-                                        Subtotal
-                                      </span>
-
-                                      <span className="font-semibold text-slate-950">
-                                        {formatCurrency(order.subtotal)}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-600">
-                                        Tax
-                                      </span>
-
-                                      <span className="font-semibold text-slate-950">
-                                        {formatCurrency(order.tax)}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-slate-600">
-                                        Discount
-                                      </span>
-
-                                      <span className="font-semibold text-slate-950">
-                                        {formatCurrency(order.discount)}
-                                      </span>
-                                    </div>
-
-                                    <div className="border-t border-slate-200 pt-3">
-                                      <div className="flex items-center justify-between">
-                                        <span className="font-bold text-slate-950">
-                                          Total
-                                        </span>
-
-                                        <span className="text-lg font-bold text-slate-950">
-                                          {formatCurrency(order.total)}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                                      <span className="text-slate-600">
-                                        Payment Status
-                                      </span>
-
-                                      <span className="font-semibold text-slate-950">
-                                        {order.paymentStatus}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="mt-5">
-                                  <h4 className="font-bold text-slate-950">
-                                    Notes
-                                  </h4>
-
-                                  <p className="mt-2 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-                                    {order.notes?.trim()
-                                      ? order.notes
-                                      : "No notes were added to this order."}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="rounded-xl border border-slate-200 bg-white p-5">
-                                <h4 className="font-bold text-slate-950">
-                                  Update Status
-                                </h4>
-
-                                <p className="mt-2 text-sm text-slate-600">
-                                  Current status: {order.status}
-                                </p>
-
-                                <select
-                                  value={selectedStatus}
-                                  onChange={(event) =>
-                                    setSelectedStatuses(
-                                      (currentStatuses) => ({
-                                        ...currentStatuses,
-                                        [order.orderId]:
-                                          event.target
-                                            .value as OrderStatus,
-                                      }),
-                                    )
-                                  }
-                                  disabled={
-                                    isUpdating ||
-                                    allowedStatuses.length === 1
-                                  }
-                                  className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-red-700 disabled:bg-slate-100"
-                                >
-                                  {allowedStatuses.map((status) => (
-                                    <option
-                                      key={status}
-                                      value={status}
-                                    >
-                                      {status}
-                                    </option>
-                                  ))}
-                                </select>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleUpdateOrderStatus(
-                                      order.orderId,
-                                    )
-                                  }
-                                  disabled={
-                                    !statusHasChanged ||
-                                    isUpdating ||
-                                    allowedStatuses.length === 1
-                                  }
-                                  className="mt-3 w-full rounded-lg bg-red-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                >
-                                  {isUpdating
-                                    ? "Saving..."
-                                    : "Update Status"}
-                                </button>
-
-                                {allowedStatuses.length === 1 && (
-                                  <p className="mt-3 text-xs text-slate-500">
-                                    This order has reached a final status
-                                    and can no longer be changed.
-                                  </p>
-                                )}
-
-                                <div className="mt-5 border-t border-slate-200 pt-4">
-                                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Last Updated
-                                  </p>
-
-                                  <p className="mt-1 text-sm text-slate-700">
-                                    {formatDate(
-                                      order.updatedAt,
-                                      "dateTime",
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
+                <div className="dd-orders__list">
+                  {filteredOrders.map(
+                    (order) => (
+                      <OrderCard
+                        key={
+                          order.orderId
+                        }
+                        order={order}
+                        selectedStatus={
+                          selectedStatuses[
+                            order
+                              .orderId
+                          ] ||
+                          order.status
+                        }
+                        isExpanded={
+                          expandedOrderId ===
+                          order.orderId
+                        }
+                        isUpdating={
+                          updatingOrderId ===
+                          order.orderId
+                        }
+                        onToggle={() =>
+                          setExpandedOrderId(
+                            expandedOrderId ===
+                              order.orderId
+                              ? null
+                              : order.orderId,
+                          )
+                        }
+                        onStatusChange={(
+                          status,
+                        ) =>
+                          setSelectedStatuses(
+                            (
+                              currentStatuses,
+                            ) => ({
+                              ...currentStatuses,
+                              [order.orderId]:
+                                status,
+                            }),
+                          )
+                        }
+                        onUpdateStatus={() =>
+                          void handleUpdateOrderStatus(
+                            order.orderId,
+                          )
+                        }
+                        getTotalQuantity={
+                          getTotalQuantity
+                        }
+                      />
+                    ),
+                  )}
                 </div>
               )}
-            </div>
+            </section>
           </>
         )}
       </div>
     </section>
+  );
+}
+
+type OrderCardProps = {
+  order: Order;
+  selectedStatus: OrderStatus;
+  isExpanded: boolean;
+  isUpdating: boolean;
+  onToggle: () => void;
+  onStatusChange: (
+    status: OrderStatus,
+  ) => void;
+  onUpdateStatus: () => void;
+  getTotalQuantity: (
+    order: Order,
+  ) => number;
+};
+
+function OrderCard({
+  order,
+  selectedStatus,
+  isExpanded,
+  isUpdating,
+  onToggle,
+  onStatusChange,
+  onUpdateStatus,
+  getTotalQuantity,
+}: OrderCardProps) {
+  const allowedStatuses =
+    STATUS_TRANSITIONS[
+      order.status
+    ];
+
+  const statusHasChanged =
+    selectedStatus !== order.status;
+
+  const isFinal =
+    allowedStatuses.length === 1;
+
+  return (
+    <article
+      className={[
+        "dd-order-card",
+        isExpanded
+          ? "dd-order-card--expanded"
+          : "",
+      ].join(" ")}
+    >
+      <div className="dd-order-card__summary">
+        <div className="dd-order-card__identity">
+          <div className="dd-order-card__marker" />
+
+          <div>
+            <strong>
+              {order.businessName}
+            </strong>
+
+            <span title={order.orderId}>
+              {order.orderId}
+            </span>
+          </div>
+        </div>
+
+        <OrderStat
+          label="Products"
+          value={order.items.length}
+        />
+
+        <OrderStat
+          label="Cases"
+          value={
+            getTotalQuantity(order)
+          }
+        />
+
+        <OrderStat
+          label="Total"
+          value={formatCurrency(
+            order.total,
+          )}
+          emphasis
+        />
+
+        <div className="dd-order-card__state">
+          <OrderStatusBadge
+            status={order.status}
+          />
+
+          <span>
+            {formatDate(
+              order.createdAt,
+              "dateTime",
+            )}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="dd-order-card__details-button"
+          aria-expanded={isExpanded}
+        >
+          <span>
+            {isExpanded
+              ? "Hide"
+              : "Details"}
+          </span>
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="m7 9 5 5 5-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {isExpanded && (
+        <div className="dd-order-detail">
+          <div className="dd-order-detail__main">
+            <section>
+              <div className="dd-order-detail__heading">
+                <div>
+                  <span>
+                    Order Contents
+                  </span>
+
+                  <h3>
+                    Line Items
+                  </h3>
+                </div>
+
+                <strong>
+                  {order.items.length}{" "}
+                  Products ·{" "}
+                  {getTotalQuantity(
+                    order,
+                  )}{" "}
+                  Cases
+                </strong>
+              </div>
+
+              <div className="dd-order-detail__items">
+                {order.items.map(
+                  (item) => (
+                    <div
+                      key={
+                        item.productId
+                      }
+                      className="dd-order-detail__item"
+                    >
+                      <div>
+                        <strong>
+                          {
+                            item.productName
+                          }
+                        </strong>
+
+                        <span>
+                          {item.productId}
+                        </span>
+                      </div>
+
+                      <div className="dd-order-detail__item-pricing">
+                        <span>
+                          {item.quantity} ×{" "}
+                          {formatCurrency(
+                            item.unitPrice,
+                          )}
+                        </span>
+
+                        <strong>
+                          {formatCurrency(
+                            item.lineTotal,
+                          )}
+                        </strong>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </section>
+
+            <section className="dd-order-detail__notes">
+              <span>
+                Fulfillment Notes
+              </span>
+
+              <p>
+                {order.notes?.trim()
+                  ? order.notes
+                  : "No notes were added to this order."}
+              </p>
+            </section>
+          </div>
+
+          <aside className="dd-order-detail__rail">
+            <section className="dd-order-detail__totals">
+              <div className="dd-order-detail__rail-title">
+                Order Summary
+              </div>
+
+              <SummaryLine
+                label="Subtotal"
+                value={formatCurrency(
+                  order.subtotal,
+                )}
+              />
+
+              <SummaryLine
+                label="Tax"
+                value={formatCurrency(
+                  order.tax,
+                )}
+              />
+
+              <SummaryLine
+                label="Discount"
+                value={formatCurrency(
+                  order.discount,
+                )}
+              />
+
+              <div className="dd-order-detail__total">
+                <span>
+                  Total
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    order.total,
+                  )}
+                </strong>
+              </div>
+
+              <div className="dd-order-detail__payment">
+                <span>
+                  Payment
+                </span>
+
+                <strong>
+                  {
+                    order.paymentStatus
+                  }
+                </strong>
+              </div>
+            </section>
+
+            <section className="dd-order-detail__status-control">
+              <div className="dd-order-detail__rail-title">
+                Fulfillment Status
+              </div>
+
+              <div className="dd-order-detail__current">
+                <span>
+                  Current
+                </span>
+
+                <OrderStatusBadge
+                  status={
+                    order.status
+                  }
+                />
+              </div>
+
+              <label
+                htmlFor={`status-${order.orderId}`}
+              >
+                Next Status
+              </label>
+
+              <select
+                id={`status-${order.orderId}`}
+                value={
+                  selectedStatus
+                }
+                onChange={(event) =>
+                  onStatusChange(
+                    event.target
+                      .value as OrderStatus,
+                  )
+                }
+                disabled={
+                  isUpdating ||
+                  isFinal
+                }
+              >
+                {allowedStatuses.map(
+                  (status) => (
+                    <option
+                      key={status}
+                      value={status}
+                    >
+                      {status}
+                    </option>
+                  ),
+                )}
+              </select>
+
+              <button
+                type="button"
+                onClick={
+                  onUpdateStatus
+                }
+                disabled={
+                  !statusHasChanged ||
+                  isUpdating ||
+                  isFinal
+                }
+              >
+                {isUpdating
+                  ? "Saving..."
+                  : "Update Status"}
+              </button>
+
+              {isFinal && (
+                <p className="dd-order-detail__final">
+                  Final status reached.
+                  This order can no
+                  longer be changed.
+                </p>
+              )}
+
+              <div className="dd-order-detail__updated">
+                <span>
+                  Last Updated
+                </span>
+
+                <strong>
+                  {formatDate(
+                    order.updatedAt,
+                    "dateTime",
+                  )}
+                </strong>
+              </div>
+            </section>
+          </aside>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function OrderStat({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string | number;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="dd-order-card__stat">
+      <span>
+        {label}
+      </span>
+
+      <strong
+        className={
+          emphasis
+            ? "dd-order-card__stat--emphasis"
+            : ""
+        }
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function OrderStatusBadge({
+  status,
+}: {
+  status: OrderStatus;
+}) {
+  return (
+    <span
+      className={[
+        "dd-order-status",
+        `dd-order-status--${status
+          .toLowerCase()
+          .replace(/\s+/g, "-")}`,
+      ].join(" ")}
+    >
+      <span />
+      {status}
+    </span>
+  );
+}
+
+function SummaryLine({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="dd-order-detail__summary-line">
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+    </div>
   );
 }

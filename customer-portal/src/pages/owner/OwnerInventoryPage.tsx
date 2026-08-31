@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import ErrorMessage from "../../components/ErrorMessage";
 import LoadingState from "../../components/LoadingState";
@@ -21,17 +26,33 @@ import {
 } from "../../utils/formatters";
 
 export default function OwnerInventoryPage() {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [inventory, setInventory] = useState<
+    InventoryItem[]
+  >([]);
 
-  const [isInventoryModalOpen, setIsInventoryModalOpen] =
-    useState(false);
-
-  const [inventoryActionError, setInventoryActionError] =
+  const [searchTerm, setSearchTerm] =
     useState("");
+
+  const [
+    showLowStockOnly,
+    setShowLowStockOnly,
+  ] = useState(false);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [
+    isInventoryModalOpen,
+    setIsInventoryModalOpen,
+  ] = useState(false);
+
+  const [
+    inventoryActionError,
+    setInventoryActionError,
+  ] = useState("");
 
   useEffect(() => {
     async function loadInventory() {
@@ -39,15 +60,19 @@ export default function OwnerInventoryPage() {
         setLoading(true);
         setError("");
 
-        const items = await getInventory();
+        const items =
+          await getInventory();
 
         setInventory(items);
-      } catch (error) {
-        console.error("Unable to load inventory:", error);
+      } catch (loadError) {
+        console.error(
+          "Unable to load inventory:",
+          loadError,
+        );
 
         setError(
-          error instanceof Error
-            ? error.message
+          loadError instanceof Error
+            ? loadError.message
             : "Unable to load inventory.",
         );
       } finally {
@@ -66,20 +91,24 @@ export default function OwnerInventoryPage() {
 
       await createInventory(input);
 
-      const refreshedInventory = await getInventory();
+      const refreshedInventory =
+        await getInventory();
 
       setInventory(refreshedInventory);
-    } catch (error) {
-      console.error("Unable to create inventory:", error);
+    } catch (actionError) {
+      console.error(
+        "Unable to create inventory:",
+        actionError,
+      );
 
       const message =
-        error instanceof Error
-          ? error.message
+        actionError instanceof Error
+          ? actionError.message
           : "Unable to create inventory.";
 
       setInventoryActionError(message);
 
-      throw error;
+      throw actionError;
     }
   }
 
@@ -87,7 +116,8 @@ export default function OwnerInventoryPage() {
     () =>
       inventory.filter(
         (item) =>
-          item.quantityInStock <= item.reorderLevel,
+          item.quantityInStock <=
+          item.reorderLevel,
       ),
     [inventory],
   );
@@ -96,7 +126,10 @@ export default function OwnerInventoryPage() {
     () =>
       inventory.reduce(
         (total, item) =>
-          total + item.quantityInStock,
+          total +
+          Number(
+            item.quantityInStock || 0,
+          ),
         0,
       ),
     [inventory],
@@ -122,9 +155,13 @@ export default function OwnerInventoryPage() {
 
         const matchesLowStock =
           !showLowStockOnly ||
-          item.quantityInStock <= item.reorderLevel;
+          item.quantityInStock <=
+            item.reorderLevel;
 
-        return matchesSearch && matchesLowStock;
+        return (
+          matchesSearch &&
+          matchesLowStock
+        );
       })
       .sort((first, second) =>
         first.productName.localeCompare(
@@ -137,22 +174,54 @@ export default function OwnerInventoryPage() {
     showLowStockOnly,
   ]);
 
+  const summaryCards = [
+    {
+      label: "Products",
+      value: inventory.length,
+      description: "Inventory catalog",
+      accent: "blue" as const,
+    },
+    {
+      label: "Total Cases",
+      value: totalCases,
+      description: "Current stock on hand",
+      accent: "blue" as const,
+    },
+    {
+      label: "Low Stock",
+      value: reorderLevelItems.length,
+      description: "At or below reorder level",
+      accent:
+        reorderLevelItems.length > 0
+          ? ("orange" as const)
+          : ("neutral" as const),
+    },
+    {
+      label: "Results",
+      value: filteredInventory.length,
+      description: showLowStockOnly
+        ? "Low-stock filter active"
+        : "Products displayed",
+      accent: "neutral" as const,
+    },
+  ];
+
   return (
-    <section className="px-6 py-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <section className="dd-inventory">
+      <div className="dd-inventory__inner">
+        <header className="dd-inventory__header">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-              Inventory Management
-            </p>
+            <div className="dd-inventory__eyebrow">
+              <span />
+              Inventory Control
+            </div>
 
-            <h2 className="mt-2 text-3xl font-bold text-slate-950">
-              Product Inventory
-            </h2>
+            <h1>Product Inventory</h1>
 
-            <p className="mt-3 text-slate-600">
-              Review stock levels, product costs, and items
-              that may need to be reordered.
+            <p>
+              Monitor stock levels, pricing,
+              reorder thresholds, and product
+              availability.
             </p>
           </div>
 
@@ -162,11 +231,18 @@ export default function OwnerInventoryPage() {
               setInventoryActionError("");
               setIsInventoryModalOpen(true);
             }}
-            className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800"
+            className="dd-inventory__add"
           >
-            + Add Inventory
+            <span
+              className="dd-inventory__add-plus"
+              aria-hidden="true"
+            >
+              +
+            </span>
+
+            <span>Add Product</span>
           </button>
-        </div>
+        </header>
 
         {inventoryActionError && (
           <ErrorMessage
@@ -189,37 +265,48 @@ export default function OwnerInventoryPage() {
 
         {!loading && !error && (
           <>
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryCard
-                label="Total Products"
-                value={inventory.length}
-              />
-
-              <SummaryCard
-                label="Total Cases"
-                value={totalCases}
-              />
-
-              <SummaryCard
-                label="Low Stock Products"
-                value={reorderLevelItems.length}
-              />
-
-              <SummaryCard
-                label="Showing Results"
-                value={filteredInventory.length}
-              />
+            <div className="dd-inventory__metrics">
+              {summaryCards.map((card) => (
+                <SummaryCard
+                  key={card.label}
+                  label={card.label}
+                  value={card.value}
+                  description={
+                    card.description
+                  }
+                  accent={card.accent}
+                />
+              ))}
             </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-                <div>
-                  <label
-                    htmlFor="inventory-search"
-                    className="block text-sm font-semibold text-slate-700"
+            <section className="dd-inventory__controls">
+              <div className="dd-inventory__search">
+                <label htmlFor="inventory-search">
+                  Search Inventory
+                </label>
+
+                <div className="dd-inventory__search-input">
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    Search inventory
-                  </label>
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+
+                    <path
+                      d="m16 16 4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
 
                   <input
                     id="inventory-search"
@@ -230,194 +317,189 @@ export default function OwnerInventoryPage() {
                         event.target.value,
                       )
                     }
-                    placeholder="Search product, brand, or product ID"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-red-700 focus:ring-2 focus:ring-red-100"
+                    placeholder="Product, brand, or product ID"
                   />
+
+                  {searchTerm.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSearchTerm("")
+                      }
+                      className="dd-inventory__clear"
+                      aria-label="Clear inventory search"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                aria-pressed={
+                  showLowStockOnly
+                }
+                onClick={() =>
+                  setShowLowStockOnly(
+                    (currentValue) =>
+                      !currentValue,
+                  )
+                }
+                className={[
+                  "dd-inventory__filter",
+                  showLowStockOnly
+                    ? "dd-inventory__filter--active"
+                    : "",
+                ].join(" ")}
+              >
+                <span
+                  className="dd-inventory__filter-dot"
+                  aria-hidden="true"
+                />
+
+                <span>
+                  {showLowStockOnly
+                    ? "Low Stock Active"
+                    : "Low Stock"}
+                </span>
+
+                {reorderLevelItems.length >
+                  0 && (
+                  <span className="dd-inventory__filter-count">
+                    {
+                      reorderLevelItems.length
+                    }
+                  </span>
+                )}
+              </button>
+            </section>
+
+            <section className="dd-inventory__directory">
+              <div className="dd-inventory__directory-header">
+                <div>
+                  <p className="dd-label">
+                    Inventory Directory
+                  </p>
+
+                  <h2>
+                    Stock Overview
+                  </h2>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowLowStockOnly(
-                      (currentValue) =>
-                        !currentValue,
-                    )
-                  }
-                  className={[
-                    "rounded-xl px-5 py-3 text-sm font-semibold transition",
-                    showLowStockOnly
-                      ? "bg-red-700 text-white hover:bg-red-800"
-                      : "bg-slate-950 text-white hover:bg-slate-800",
-                  ].join(" ")}
-                >
-                  {showLowStockOnly
-                    ? "Showing Low Stock"
-                    : "Show Low Stock Only"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <h3 className="text-xl font-bold text-slate-950">
-                  Inventory Directory
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-600">
-                  Showing {filteredInventory.length} of{" "}
-                  {inventory.length} products.
+                <p className="dd-inventory__result-count">
+                  Showing{" "}
+                  <strong>
+                    {
+                      filteredInventory.length
+                    }
+                  </strong>{" "}
+                  of{" "}
+                  <strong>
+                    {inventory.length}
+                  </strong>
                 </p>
               </div>
 
-              {filteredInventory.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="font-semibold text-slate-800">
-                    No inventory products found
-                  </p>
+              {filteredInventory.length ===
+              0 ? (
+                <div className="dd-inventory__empty">
+                  <div className="dd-inventory__empty-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="m4 8 8-4 8 4-8 4-8-4Zm0 0v8l8 4 8-4V8M12 12v8"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Try changing the search term or
-                    low-stock filter.
-                  </p>
+                  <div>
+                    <strong>
+                      No products found
+                    </strong>
+
+                    <p>
+                      Adjust your search or
+                      low-stock filter.
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <TableHeading>
-                          Product
-                        </TableHeading>
+                <>
+                  <div className="dd-inventory__desktop-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <TableHeading>
+                            Product
+                          </TableHeading>
 
-                        <TableHeading>
-                          Brand
-                        </TableHeading>
+                          <TableHeading>
+                            Brand
+                          </TableHeading>
 
-                        <TableHeading>
-                          In Stock
-                        </TableHeading>
+                          <TableHeading align="right">
+                            Stock
+                          </TableHeading>
 
-                        <TableHeading>
-                          Low Stock Level
-                        </TableHeading>
+                          <TableHeading align="right">
+                            Reorder
+                          </TableHeading>
 
-                        <TableHeading>
-                          Case Cost
-                        </TableHeading>
+                          <TableHeading align="right">
+                            Cost
+                          </TableHeading>
 
-                        <TableHeading>
-                          Selling Price
-                        </TableHeading>
+                          <TableHeading align="right">
+                            Sell
+                          </TableHeading>
 
-                        <TableHeading>
-                          Status
-                        </TableHeading>
+                          <TableHeading>
+                            Status
+                          </TableHeading>
 
-                        <TableHeading>
-                          Created
-                        </TableHeading>
-                      </tr>
-                    </thead>
+                          <TableHeading>
+                            Created
+                          </TableHeading>
+                        </tr>
+                      </thead>
 
-                    <tbody className="divide-y divide-slate-200">
-                      {filteredInventory.map((item) => {
-                        const isLowStock =
-                          item.quantityInStock <=
-                          item.reorderLevel;
+                      <tbody>
+                        {filteredInventory.map(
+                          (item) => (
+                            <InventoryTableRow
+                              key={
+                                item.productId
+                              }
+                              item={item}
+                            />
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
 
-                        return (
-                          <tr
-                            key={item.productId}
-                            className="hover:bg-slate-50"
-                          >
-                            <TableCell>
-                              <p className="font-semibold text-slate-950">
-                                {item.productName}
-                              </p>
-
-                              <p className="mt-1 text-xs text-slate-500">
-                                {item.productId}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <p className="text-slate-800">
-                                {item.brand}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <p className="text-lg font-bold text-slate-950">
-                                {item.quantityInStock}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <p className="text-slate-700">
-                                {item.reorderLevel}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <p className="font-medium text-slate-900">
-                                {formatCurrency(
-                                  item.caseCost,
-                                )}
-                              </p>
-                            </TableCell>
-
-                            <TableCell>
-                              <div>
-                                <p className="font-semibold text-slate-950">
-                                  {formatCurrency(
-                                    item.sellingPrice,
-                                  )}
-                                </p>
-
-                                <p className="mt-1 text-xs text-slate-500">
-                                  Margin{" "}
-                                  {formatCurrency(
-                                    Number(
-                                      item.sellingPrice,
-                                    ) -
-                                      Number(
-                                        item.caseCost,
-                                      ),
-                                  )}
-                                </p>
-                              </div>
-                            </TableCell>
-
-                            <TableCell>
-                              <span
-                                className={[
-                                  "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                                  isLowStock
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-green-100 text-green-800",
-                                ].join(" ")}
-                              >
-                                {isLowStock
-                                  ? "Low Stock"
-                                  : "In Stock"}
-                              </span>
-                            </TableCell>
-
-                            <TableCell>
-                              <p className="whitespace-nowrap text-sm text-slate-600">
-                                {formatDate(
-                                  item.createdAt,
-                                )}
-                              </p>
-                            </TableCell>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                  <div className="dd-inventory__mobile-list">
+                    {filteredInventory.map(
+                      (item) => (
+                        <InventoryMobileCard
+                          key={
+                            item.productId
+                          }
+                          item={item}
+                        />
+                      ),
+                    )}
+                  </div>
+                </>
               )}
-            </div>
+            </section>
           </>
         )}
       </div>
@@ -427,23 +509,302 @@ export default function OwnerInventoryPage() {
         onClose={() =>
           setIsInventoryModalOpen(false)
         }
-        onSubmit={handleCreateInventory}
+        onSubmit={
+          handleCreateInventory
+        }
       />
     </section>
   );
 }
 
+function InventoryTableRow({
+  item,
+}: {
+  item: InventoryItem;
+}) {
+  const isLowStock =
+    item.quantityInStock <=
+    item.reorderLevel;
+
+  return (
+    <tr>
+      <TableCell>
+        <div className="dd-inventory__product">
+          <div
+            className={[
+              "dd-inventory__product-marker",
+              isLowStock
+                ? "dd-inventory__product-marker--warning"
+                : "",
+            ].join(" ")}
+          />
+
+          <div>
+            <p className="dd-inventory__product-name">
+              {item.productName}
+            </p>
+
+            <p className="dd-inventory__product-id">
+              {item.productId}
+            </p>
+
+            {item.barcode && (
+              <p className="dd-inventory__barcode">
+                {item.barcodeType
+                  ? `${item.barcodeType} · `
+                  : ""}
+                {item.barcode}
+              </p>
+            )}
+          </div>
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <span className="dd-inventory__brand">
+          {item.brand}
+        </span>
+      </TableCell>
+
+      <TableCell align="right">
+        <span
+          className={[
+            "dd-inventory__stock",
+            isLowStock
+              ? "dd-inventory__stock--low"
+              : "",
+          ].join(" ")}
+        >
+          {item.quantityInStock}
+        </span>
+      </TableCell>
+
+      <TableCell align="right">
+        <span className="dd-inventory__number">
+          {item.reorderLevel}
+        </span>
+      </TableCell>
+
+      <TableCell align="right">
+        <span className="dd-inventory__money">
+          {formatCurrency(
+            item.caseCost,
+          )}
+        </span>
+      </TableCell>
+
+      <TableCell align="right">
+        <div className="dd-inventory__price">
+          <strong>
+            {formatCurrency(
+              item.sellingPrice,
+            )}
+          </strong>
+
+          <span>
+            +{" "}
+            {formatCurrency(
+              Number(
+                item.sellingPrice,
+              ) -
+                Number(
+                  item.caseCost,
+                ),
+            )}
+          </span>
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <InventoryStatus
+          item={item}
+        />
+      </TableCell>
+
+      <TableCell>
+        <span className="dd-inventory__date">
+          {formatDate(
+            item.createdAt,
+          )}
+        </span>
+      </TableCell>
+    </tr>
+  );
+}
+
+function InventoryMobileCard({
+  item,
+}: {
+  item: InventoryItem;
+}) {
+  const isLowStock =
+    item.quantityInStock <=
+    item.reorderLevel;
+
+  return (
+    <article className="dd-inventory__mobile-card">
+      <div className="dd-inventory__mobile-top">
+        <div className="dd-inventory__product">
+          <div
+            className={[
+              "dd-inventory__product-marker",
+              isLowStock
+                ? "dd-inventory__product-marker--warning"
+                : "",
+            ].join(" ")}
+          />
+
+          <div>
+            <p className="dd-inventory__product-name">
+              {item.productName}
+            </p>
+
+            <p className="dd-inventory__mobile-brand">
+              {item.brand}
+            </p>
+          </div>
+        </div>
+
+        <InventoryStatus
+          item={item}
+        />
+      </div>
+
+      <div className="dd-inventory__mobile-stock">
+        <div>
+          <span>In Stock</span>
+
+          <strong
+            className={
+              isLowStock
+                ? "dd-inventory__mobile-stock-low"
+                : ""
+            }
+          >
+            {item.quantityInStock}
+          </strong>
+        </div>
+
+        <div>
+          <span>Reorder At</span>
+          <strong>
+            {item.reorderLevel}
+          </strong>
+        </div>
+
+        <div>
+          <span>Sell Price</span>
+          <strong>
+            {formatCurrency(
+              item.sellingPrice,
+            )}
+          </strong>
+        </div>
+      </div>
+
+      <div className="dd-inventory__mobile-details">
+        <div>
+          <span>Case Cost</span>
+
+          <strong>
+            {formatCurrency(
+              item.caseCost,
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>Margin</span>
+
+          <strong>
+            {formatCurrency(
+              Number(
+                item.sellingPrice,
+              ) -
+                Number(
+                  item.caseCost,
+                ),
+            )}
+          </strong>
+        </div>
+      </div>
+
+      <div className="dd-inventory__mobile-footer">
+        <div>
+          <span className="dd-inventory__product-id">
+            {item.productId}
+          </span>
+
+          {item.barcode && (
+            <span className="dd-inventory__barcode">
+              {item.barcode}
+            </span>
+          )}
+        </div>
+
+        <span className="dd-inventory__date">
+          {formatDate(
+            item.createdAt,
+          )}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function InventoryStatus({
+  item,
+}: {
+  item: InventoryItem;
+}) {
+  const isLowStock =
+    item.quantityInStock <=
+    item.reorderLevel;
+
+  if (item.status !== "active") {
+    return (
+      <span className="dd-inventory__status dd-inventory__status--inactive">
+        <span />
+        {item.status}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={[
+        "dd-inventory__status",
+        isLowStock
+          ? "dd-inventory__status--low"
+          : "dd-inventory__status--ok",
+      ].join(" ")}
+    >
+      <span />
+
+      {isLowStock
+        ? "Low Stock"
+        : "In Stock"}
+    </span>
+  );
+}
+
 type TableContentProps = {
-  children: React.ReactNode;
+  children: ReactNode;
+  align?: "left" | "right";
 };
 
 function TableHeading({
   children,
+  align = "left",
 }: TableContentProps) {
   return (
     <th
       scope="col"
-      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500"
+      className={
+        align === "right"
+          ? "dd-inventory__th dd-inventory__th--right"
+          : "dd-inventory__th"
+      }
     >
       {children}
     </th>
@@ -452,9 +813,16 @@ function TableHeading({
 
 function TableCell({
   children,
+  align = "left",
 }: TableContentProps) {
   return (
-    <td className="px-6 py-5 align-top">
+    <td
+      className={
+        align === "right"
+          ? "dd-inventory__td dd-inventory__td--right"
+          : "dd-inventory__td"
+      }
+    >
       {children}
     </td>
   );

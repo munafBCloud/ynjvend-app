@@ -1,19 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import InvoiceModal from "../../components/InvoiceModal";
 import ErrorMessage from "../../components/ErrorMessage";
+import InvoiceModal from "../../components/InvoiceModal";
 import LoadingState from "../../components/LoadingState";
 import SummaryCard from "../../components/SummaryCard";
+
+import {
+  getInvoices,
+  updateInvoice,
+} from "../../services/invoices";
 
 import {
   formatCurrency,
   formatDate,
 } from "../../utils/formatters";
-import { getInvoiceStatusClasses } from "../../utils/status";
-import {
-  getInvoices,
-  updateInvoice,
-} from "../../services/invoices";
 
 import type {
   Invoice,
@@ -38,23 +42,43 @@ type InvoiceUpdateInput = {
 };
 
 export default function OwnerInvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [invoices, setInvoices] =
+    useState<Invoice[]>([]);
 
-  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(
-    null,
-  );
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
-  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState("All");
 
-  const [updatingInvoiceId, setUpdatingInvoiceId] = useState<string | null>(
-    null,
-  );
+  const [
+    expandedInvoiceId,
+    setExpandedInvoiceId,
+  ] = useState<string | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [
+    showCreateInvoice,
+    setShowCreateInvoice,
+  ] = useState(false);
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
+
+  const [
+    updatingInvoiceId,
+    setUpdatingInvoiceId,
+  ] = useState<string | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [actionError, setActionError] =
+    useState("");
 
   useEffect(() => {
     async function loadInvoices() {
@@ -62,11 +86,15 @@ export default function OwnerInvoicesPage() {
         setLoading(true);
         setError("");
 
-        const loadedInvoices = await getInvoices();
+        const loadedInvoices =
+          await getInvoices();
 
         setInvoices(loadedInvoices);
       } catch (loadError) {
-        console.error("Unable to load invoices:", loadError);
+        console.error(
+          "Unable to load invoices:",
+          loadError,
+        );
 
         setError(
           loadError instanceof Error
@@ -81,43 +109,106 @@ export default function OwnerInvoicesPage() {
     void loadInvoices();
   }, []);
 
-  const filteredInvoices = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredInvoices = useMemo(
+    () => {
+      const normalizedSearch =
+        searchTerm
+          .trim()
+          .toLowerCase();
 
-    return invoices.filter((invoice) => {
-      const matchesStatus =
-        statusFilter === "All" || invoice.status === statusFilter;
+      return invoices.filter(
+        (invoice) => {
+          const matchesStatus =
+            statusFilter === "All" ||
+            invoice.status ===
+              statusFilter;
 
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        invoice.invoiceNumber.toLowerCase().includes(normalizedSearch) ||
-        invoice.businessName.toLowerCase().includes(normalizedSearch) ||
-        invoice.customerId.toLowerCase().includes(normalizedSearch) ||
-        invoice.orderId.toLowerCase().includes(normalizedSearch);
+          const matchesSearch =
+            normalizedSearch.length ===
+              0 ||
+            invoice.invoiceNumber
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            invoice.businessName
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            invoice.customerId
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              ) ||
+            invoice.orderId
+              .toLowerCase()
+              .includes(
+                normalizedSearch,
+              );
 
-      return matchesStatus && matchesSearch;
-    });
-  }, [invoices, searchTerm, statusFilter]);
+          return (
+            matchesStatus &&
+            matchesSearch
+          );
+        },
+      );
+    },
+    [
+      invoices,
+      searchTerm,
+      statusFilter,
+    ],
+  );
 
   const invoiceCounts = useMemo(
     () => ({
       total: invoices.length,
 
-      outstanding: invoices.filter(
+      outstanding:
+        invoices.filter(
+          (invoice) =>
+            invoice.status !==
+              "Paid" &&
+            invoice.status !==
+              "Void" &&
+            invoice.balanceDue > 0,
+        ).length,
+
+      paid: invoices.filter(
         (invoice) =>
-          invoice.status !== "Paid" &&
-          invoice.status !== "Void" &&
-          invoice.balanceDue > 0,
+          invoice.status === "Paid",
       ).length,
 
-      paid: invoices.filter((invoice) => invoice.status === "Paid").length,
-
-      overdue: invoices.filter((invoice) => invoice.status === "Overdue")
-        .length,
+      overdue: invoices.filter(
+        (invoice) =>
+          invoice.status ===
+          "Overdue",
+      ).length,
     }),
     [invoices],
   );
 
+  const outstandingBalance = useMemo(
+    () =>
+      invoices
+        .filter(
+          (invoice) =>
+            invoice.status !==
+              "Void" &&
+            invoice.balanceDue > 0,
+        )
+        .reduce(
+          (total, invoice) =>
+            total +
+            Number(
+              invoice.balanceDue ||
+                0,
+            ),
+          0,
+        ),
+    [invoices],
+  );
 
   async function handleInvoiceUpdate(
     invoiceId: string,
@@ -125,53 +216,69 @@ export default function OwnerInvoicesPage() {
     successText: string,
   ) {
     try {
-      setUpdatingInvoiceId(invoiceId);
-      setError("");
+      setUpdatingInvoiceId(
+        invoiceId,
+      );
+
+      setActionError("");
       setSuccessMessage("");
 
-      const updatedInvoice = await updateInvoice(
-        invoiceId,
-        update,
+      const updatedInvoice =
+        await updateInvoice(
+          invoiceId,
+          update,
+        );
+
+      setInvoices(
+        (currentInvoices) =>
+          currentInvoices.map(
+            (invoice) =>
+              invoice.invoiceId ===
+              invoiceId
+                ? updatedInvoice
+                : invoice,
+          ),
       );
 
-      setInvoices((currentInvoices) =>
-        currentInvoices.map((invoice) =>
-          invoice.invoiceId === invoiceId
-            ? updatedInvoice
-            : invoice,
-        ),
+      setSuccessMessage(
+        successText,
       );
-
-      setSuccessMessage(successText);
     } catch (updateError) {
-      console.error("Unable to update invoice:", updateError);
+      console.error(
+        "Unable to update invoice:",
+        updateError,
+      );
 
-      setError(
+      setActionError(
         updateError instanceof Error
           ? updateError.message
           : "Unable to update invoice.",
       );
     } finally {
-      setUpdatingInvoiceId(null);
+      setUpdatingInvoiceId(
+        null,
+      );
     }
   }
 
-
   return (
-    <section className="px-6 py-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <section className="dd-invoices">
+      <div className="dd-invoices__inner">
+        <header className="dd-invoices__header">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-red-700">
-              Billing
-            </p>
+            <div className="dd-invoices__eyebrow">
+              <span />
+              Billing Operations
+            </div>
 
-            <h2 className="mt-2 text-3xl font-bold text-slate-950">
+            <h1>
               Invoice Management
-            </h2>
+            </h1>
 
-            <p className="mt-3 text-slate-600">
-              Review invoices, balances, payment status, and billing details.
+            <p>
+              Track customer billing,
+              balances, payment status,
+              and invoice lifecycle.
             </p>
           </div>
 
@@ -179,19 +286,33 @@ export default function OwnerInvoicesPage() {
             type="button"
             onClick={() => {
               setSuccessMessage("");
-              setError("");
-              setShowCreateInvoice(true);
+              setActionError("");
+              setShowCreateInvoice(
+                true,
+              );
             }}
-            className="w-fit rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-800"
+            className="dd-invoices__create"
           >
+            <span>+</span>
             Create Invoice
           </button>
-        </div>
+        </header>
 
         {successMessage && (
-          <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="font-semibold text-green-800">
-              {successMessage}
+          <div className="dd-invoices__success">
+            <span />
+            {successMessage}
+          </div>
+        )}
+
+        {actionError && (
+          <div className="dd-invoices__action-error">
+            <strong>
+              Invoice action failed
+            </strong>
+
+            <p>
+              {actionError}
             </p>
           </div>
         )}
@@ -202,402 +323,282 @@ export default function OwnerInvoicesPage() {
 
         {!loading && error && (
           <ErrorMessage
-            title="Unable to complete invoice action"
+            title="Unable to load invoices"
             message={error}
           />
         )}
 
-        {!loading && (
+        {!loading && !error && (
           <>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="dd-invoices__metrics">
               <SummaryCard
-                label="Total Invoices"
-                value={invoiceCounts.total}
+                label="Invoices"
+                value={
+                  invoiceCounts.total
+                }
+                description="All invoice records"
+                accent="neutral"
               />
 
               <SummaryCard
                 label="Outstanding"
-                value={invoiceCounts.outstanding}
+                value={
+                  invoiceCounts.outstanding
+                }
+                description="Open balances"
+                accent="orange"
               />
 
               <SummaryCard
                 label="Paid"
-                value={invoiceCounts.paid}
+                value={
+                  invoiceCounts.paid
+                }
+                description="Settled invoices"
+                accent="blue"
               />
 
               <SummaryCard
                 label="Overdue"
-                value={invoiceCounts.overdue}
+                value={
+                  invoiceCounts.overdue
+                }
+                description="Requires attention"
+                accent={
+                  invoiceCounts.overdue >
+                  0
+                    ? "orange"
+                    : "neutral"
+                }
               />
             </div>
 
-            <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+            <section className="dd-invoices__balance-strip">
+              <div>
+                <span>
+                  Outstanding A/R
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    outstandingBalance,
+                  )}
+                </strong>
+              </div>
+
+              <p>
+                Remaining balance
+                across all non-void
+                invoices.
+              </p>
+            </section>
+
+            <section className="dd-invoices__controls">
+              <div className="dd-invoices__search">
+                <label htmlFor="invoice-search">
+                  Search Invoices
+                </label>
+
                 <div>
-                  <label
-                    htmlFor="invoice-search"
-                    className="block text-sm font-semibold text-slate-700"
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    Search invoices
-                  </label>
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+
+                    <path
+                      d="m16 16 4 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
 
                   <input
                     id="invoice-search"
                     type="search"
                     value={searchTerm}
                     onChange={(event) =>
-                      setSearchTerm(event.target.value)
+                      setSearchTerm(
+                        event.target
+                          .value,
+                      )
                     }
                     placeholder="Invoice number, customer, or order ID"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
                   />
-                </div>
 
-                <div>
-                  <label
-                    htmlFor="invoice-status-filter"
-                    className="block text-sm font-semibold text-slate-700"
-                  >
-                    Status
-                  </label>
-
-                  <select
-                    id="invoice-status-filter"
-                    value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value)
-                    }
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-                  >
-                    {STATUS_FILTERS.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSearchTerm(
+                          "",
+                        )
+                      }
+                      aria-label="Clear invoice search"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {filteredInvoices.length === 0 ? (
-                <div className="p-6">
-                  <p className="text-slate-600">
-                    No invoices match the current search and filter.
+              <div className="dd-invoices__status-filter">
+                <label htmlFor="invoice-status-filter">
+                  Status
+                </label>
+
+                <select
+                  id="invoice-status-filter"
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(
+                      event.target
+                        .value,
+                    )
+                  }
+                >
+                  {STATUS_FILTERS.map(
+                    (status) => (
+                      <option
+                        key={status}
+                        value={status}
+                      >
+                        {status}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+            </section>
+
+            <section className="dd-invoices__ledger">
+              <header className="dd-invoices__ledger-header">
+                <div>
+                  <div className="dd-label">
+                    Billing Ledger
+                  </div>
+
+                  <h2>
+                    Customer Invoices
+                  </h2>
+                </div>
+
+                <p>
+                  Showing{" "}
+                  <strong>
+                    {
+                      filteredInvoices.length
+                    }
+                  </strong>{" "}
+                  of{" "}
+                  <strong>
+                    {invoices.length}
+                  </strong>
+                </p>
+              </header>
+
+              {filteredInvoices.length ===
+              0 ? (
+                <div className="dd-invoices__empty">
+                  <div>
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3Zm3 5h4m-4 4h4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+
+                  <strong>
+                    No invoices found
+                  </strong>
+
+                  <p>
+                    Adjust the current
+                    search or status
+                    filter.
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-200">
-                  {filteredInvoices.map((invoice) => {
-                    const isExpanded =
-                      expandedInvoiceId === invoice.invoiceId;
-
-                    const isUpdating =
-                      updatingInvoiceId === invoice.invoiceId;
-
-                    return (
-                      <article key={invoice.invoiceId}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedInvoiceId(
-                              isExpanded
-                                ? null
-                                : invoice.invoiceId,
-                            )
-                          }
-                          className="grid w-full gap-4 px-6 py-5 text-left transition hover:bg-slate-50 md:grid-cols-[1.1fr_1.5fr_1fr_1fr_auto] md:items-center"
-                        >
-                          <div>
-                            <p className="font-bold text-slate-950">
-                              {invoice.invoiceNumber}
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-400">
-                              {invoice.invoiceId}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {invoice.businessName}
-                            </p>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                              Due {formatDate(invoice.dueDate)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">
-                              Total
-                            </p>
-
-                            <p className="mt-1 font-bold text-slate-950">
-                              {formatCurrency(invoice.total)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">
-                              Balance
-                            </p>
-
-                            <p className="mt-1 font-bold text-slate-950">
-                              {formatCurrency(invoice.balanceDue)}
-                            </p>
-                          </div>
-
-                          <span
-                            className={[
-                              "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-                              getInvoiceStatusClasses(invoice.status),
-                            ].join(" ")}
-                          >
-                            {invoice.status}
-                          </span>
-                        </button>
-
-                        {isExpanded && (
-                          <div className="border-t border-slate-200 bg-slate-50 px-6 py-6">
-                            <div className="grid gap-6 md:grid-cols-3">
-                              <div>
-                                <p className="text-sm font-semibold text-slate-500">
-                                  Issue date
-                                </p>
-
-                                <p className="mt-1 text-slate-950">
-                                  {formatDate(invoice.issueDate)}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-sm font-semibold text-slate-500">
-                                  Due date
-                                </p>
-
-                                <p className="mt-1 text-slate-950">
-                                  {formatDate(invoice.dueDate)}
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-sm font-semibold text-slate-500">
-                                  Order ID
-                                </p>
-
-                                <p className="mt-1 break-all text-slate-950">
-                                  {invoice.orderId || "Not linked"}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                              <div className="min-w-[650px]">
-                                <div className="grid grid-cols-[1fr_90px_120px_120px] gap-4 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600">
-                                  <span>Product</span>
-                                  <span>Qty</span>
-                                  <span>Unit price</span>
-                                  <span>Line total</span>
-                                </div>
-
-                                {invoice.items.map((item) => (
-                                  <div
-                                    key={`${invoice.invoiceId}-${item.productId}`}
-                                    className="grid grid-cols-[1fr_90px_120px_120px] gap-4 border-b border-slate-100 px-4 py-3 text-sm last:border-b-0"
-                                  >
-                                    <span className="font-medium text-slate-900">
-                                      {item.productName}
-                                    </span>
-
-                                    <span>{item.quantity}</span>
-
-                                    <span>
-                                      {formatCurrency(item.unitPrice)}
-                                    </span>
-
-                                    <span className="font-semibold">
-                                      {formatCurrency(item.lineTotal)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="mt-6 ml-auto max-w-sm space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">
-                                  Subtotal
-                                </span>
-
-                                <span className="font-semibold">
-                                  {formatCurrency(invoice.subtotal)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">
-                                  Tax
-                                </span>
-
-                                <span className="font-semibold">
-                                  {formatCurrency(invoice.tax)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">
-                                  Amount paid
-                                </span>
-
-                                <span className="font-semibold">
-                                  {formatCurrency(invoice.amountPaid)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span className="text-slate-600">
-                                  Balance due
-                                </span>
-
-                                <span className="font-semibold">
-                                  {formatCurrency(invoice.balanceDue)}
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between border-t border-slate-300 pt-2 text-lg">
-                                <span className="font-bold">Total</span>
-
-                                <span className="font-bold">
-                                  {formatCurrency(invoice.total)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="mt-8 flex flex-wrap gap-3">
-                              {invoice.status === "Draft" && (
-                                <button
-                                  type="button"
-                                  disabled={isUpdating}
-                                  onClick={() =>
-                                    void handleInvoiceUpdate(
-                                      invoice.invoiceId,
-                                      { status: "Sent" },
-                                      `${invoice.invoiceNumber} was marked as sent.`,
-                                    )
-                                  }
-                                  className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {isUpdating
-                                    ? "Updating..."
-                                    : "Mark Sent"}
-                                </button>
-                              )}
-
-                              {invoice.status !== "Paid" &&
-                                invoice.status !== "Void" && (
-                                  <button
-                                    type="button"
-                                    disabled={isUpdating}
-                                    onClick={() =>
-                                      void handleInvoiceUpdate(
-                                        invoice.invoiceId,
-                                        {
-                                          amountPaid: invoice.total,
-                                        },
-                                        `${invoice.invoiceNumber} was marked as paid.`,
-                                      )
-                                    }
-                                    className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                  >
-                                    {isUpdating
-                                      ? "Updating..."
-                                      : "Mark Paid"}
-                                  </button>
-                                )}
-
-                              {invoice.status !== "Paid" &&
-                                invoice.status !== "Overdue" &&
-                                invoice.status !== "Void" && (
-                                  <button
-                                    type="button"
-                                    disabled={isUpdating}
-                                    onClick={() =>
-                                      void handleInvoiceUpdate(
-                                        invoice.invoiceId,
-                                        { status: "Overdue" },
-                                        `${invoice.invoiceNumber} was marked as overdue.`,
-                                      )
-                                    }
-                                    className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                  >
-                                    {isUpdating
-                                      ? "Updating..."
-                                      : "Mark Overdue"}
-                                  </button>
-                                )}
-
-                              {invoice.status !== "Void" && (
-                                <button
-                                  type="button"
-                                  disabled={isUpdating}
-                                  onClick={() => {
-                                    const confirmed = window.confirm(
-                                      `Void ${invoice.invoiceNumber}? This preserves the invoice but marks it as void.`,
-                                    );
-
-                                    if (!confirmed) {
-                                      return;
-                                    }
-
-                                    void handleInvoiceUpdate(
-                                      invoice.invoiceId,
-                                      { status: "Void" },
-                                      `${invoice.invoiceNumber} was voided.`,
-                                    );
-                                  }}
-                                  className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {isUpdating
-                                    ? "Updating..."
-                                    : "Void Invoice"}
-                                </button>
-                              )}
-                            </div>
-
-                            {invoice.notes && (
-                              <div className="mt-6">
-                                <p className="text-sm font-semibold text-slate-500">
-                                  Notes
-                                </p>
-
-                                <p className="mt-1 whitespace-pre-wrap text-slate-700">
-                                  {invoice.notes}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
+                <div className="dd-invoices__list">
+                  {filteredInvoices.map(
+                    (invoice) => (
+                      <InvoiceCard
+                        key={
+                          invoice.invoiceId
+                        }
+                        invoice={
+                          invoice
+                        }
+                        expanded={
+                          expandedInvoiceId ===
+                          invoice.invoiceId
+                        }
+                        updating={
+                          updatingInvoiceId ===
+                          invoice.invoiceId
+                        }
+                        onToggle={() =>
+                          setExpandedInvoiceId(
+                            expandedInvoiceId ===
+                              invoice.invoiceId
+                              ? null
+                              : invoice.invoiceId,
+                          )
+                        }
+                        onUpdate={(
+                          update,
+                          successText,
+                        ) =>
+                          void handleInvoiceUpdate(
+                            invoice.invoiceId,
+                            update,
+                            successText,
+                          )
+                        }
+                      />
+                    ),
+                  )}
                 </div>
               )}
-            </div>
+            </section>
           </>
         )}
       </div>
 
       <InvoiceModal
         isOpen={showCreateInvoice}
-        onClose={() => setShowCreateInvoice(false)}
+        onClose={() =>
+          setShowCreateInvoice(
+            false,
+          )
+        }
         onCreated={(invoice) => {
-          setInvoices((currentInvoices) => [
-            invoice,
-            ...currentInvoices,
-          ]);
+          setInvoices(
+            (currentInvoices) => [
+              invoice,
+              ...currentInvoices,
+            ],
+          );
 
-          setExpandedInvoiceId(invoice.invoiceId);
+          setExpandedInvoiceId(
+            invoice.invoiceId,
+          );
 
           setSuccessMessage(
             `${invoice.invoiceNumber} was created successfully.`,
@@ -605,5 +606,537 @@ export default function OwnerInvoicesPage() {
         }}
       />
     </section>
+  );
+}
+
+type InvoiceCardProps = {
+  invoice: Invoice;
+  expanded: boolean;
+  updating: boolean;
+  onToggle: () => void;
+  onUpdate: (
+    update: InvoiceUpdateInput,
+    successText: string,
+  ) => void;
+};
+
+function InvoiceCard({
+  invoice,
+  expanded,
+  updating,
+  onToggle,
+  onUpdate,
+}: InvoiceCardProps) {
+  return (
+    <article
+      className={[
+        "dd-invoice-card",
+        expanded
+          ? "dd-invoice-card--expanded"
+          : "",
+      ].join(" ")}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className="dd-invoice-card__summary"
+        aria-expanded={expanded}
+      >
+        <div className="dd-invoice-card__identity">
+          <div className="dd-invoice-card__marker" />
+
+          <div>
+            <strong>
+              {invoice.invoiceNumber}
+            </strong>
+
+            <span>
+              {invoice.invoiceId}
+            </span>
+          </div>
+        </div>
+
+        <div className="dd-invoice-card__customer">
+          <span>
+            Customer
+          </span>
+
+          <strong>
+            {invoice.businessName}
+          </strong>
+
+          <small>
+            Due{" "}
+            {formatDate(
+              invoice.dueDate,
+            )}
+          </small>
+        </div>
+
+        <InvoiceStat
+          label="Total"
+          value={formatCurrency(
+            invoice.total,
+          )}
+        />
+
+        <InvoiceStat
+          label="Balance Due"
+          value={formatCurrency(
+            invoice.balanceDue,
+          )}
+          attention={
+            invoice.balanceDue > 0 &&
+            invoice.status !== "Void"
+          }
+        />
+
+        <div className="dd-invoice-card__status">
+          <InvoiceStatusBadge
+            status={invoice.status}
+          />
+        </div>
+
+        <svg
+          className="dd-invoice-card__chevron"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="m7 9 5 5 5-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="dd-invoice-detail">
+          <div className="dd-invoice-detail__main">
+            <section className="dd-invoice-detail__metadata">
+              <MetaItem
+                label="Issue Date"
+                value={formatDate(
+                  invoice.issueDate,
+                )}
+              />
+
+              <MetaItem
+                label="Due Date"
+                value={formatDate(
+                  invoice.dueDate,
+                )}
+              />
+
+              <MetaItem
+                label="Order ID"
+                value={
+                  invoice.orderId ||
+                  "Not linked"
+                }
+                mono
+              />
+
+              <MetaItem
+                label="Customer ID"
+                value={
+                  invoice.customerId
+                }
+                mono
+              />
+            </section>
+
+            <section className="dd-invoice-detail__items-section">
+              <div className="dd-invoice-detail__heading">
+                <div>
+                  <span>
+                    Invoice Contents
+                  </span>
+
+                  <h3>
+                    Line Items
+                  </h3>
+                </div>
+
+                <strong>
+                  {invoice.items.length}{" "}
+                  products
+                </strong>
+              </div>
+
+              <div className="dd-invoice-detail__items">
+                <div className="dd-invoice-detail__items-head">
+                  <span>
+                    Product
+                  </span>
+
+                  <span>
+                    Qty
+                  </span>
+
+                  <span>
+                    Unit Price
+                  </span>
+
+                  <span>
+                    Line Total
+                  </span>
+                </div>
+
+                {invoice.items.map(
+                  (item) => (
+                    <div
+                      key={`${invoice.invoiceId}-${item.productId}`}
+                      className="dd-invoice-detail__item"
+                    >
+                      <div>
+                        <strong>
+                          {
+                            item.productName
+                          }
+                        </strong>
+
+                        <small>
+                          {
+                            item.productId
+                          }
+                        </small>
+                      </div>
+
+                      <span>
+                        {item.quantity}
+                      </span>
+
+                      <span>
+                        {formatCurrency(
+                          item.unitPrice,
+                        )}
+                      </span>
+
+                      <strong>
+                        {formatCurrency(
+                          item.lineTotal,
+                        )}
+                      </strong>
+                    </div>
+                  ),
+                )}
+              </div>
+            </section>
+
+            {invoice.notes && (
+              <section className="dd-invoice-detail__notes">
+                <span>
+                  Billing Notes
+                </span>
+
+                <p>
+                  {invoice.notes}
+                </p>
+              </section>
+            )}
+          </div>
+
+          <aside className="dd-invoice-detail__rail">
+            <section className="dd-invoice-detail__financials">
+              <h3>
+                Invoice Summary
+              </h3>
+
+              <FinancialLine
+                label="Subtotal"
+                value={formatCurrency(
+                  invoice.subtotal,
+                )}
+              />
+
+              <FinancialLine
+                label="Tax"
+                value={formatCurrency(
+                  invoice.tax,
+                )}
+              />
+
+              <FinancialLine
+                label="Discount"
+                value={formatCurrency(
+                  invoice.discount,
+                )}
+              />
+
+              <FinancialLine
+                label="Amount Paid"
+                value={formatCurrency(
+                  invoice.amountPaid,
+                )}
+              />
+
+              <div className="dd-invoice-detail__balance">
+                <span>
+                  Balance Due
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    invoice.balanceDue,
+                  )}
+                </strong>
+              </div>
+
+              <div className="dd-invoice-detail__total">
+                <span>
+                  Invoice Total
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    invoice.total,
+                  )}
+                </strong>
+              </div>
+            </section>
+
+            <section className="dd-invoice-detail__actions">
+              <div className="dd-invoice-detail__actions-header">
+                <span>
+                  Billing Status
+                </span>
+
+                <InvoiceStatusBadge
+                  status={
+                    invoice.status
+                  }
+                />
+              </div>
+
+              <div className="dd-invoice-detail__action-grid">
+                {invoice.status ===
+                  "Draft" && (
+                  <button
+                    type="button"
+                    disabled={
+                      updating
+                    }
+                    onClick={() =>
+                      onUpdate(
+                        {
+                          status:
+                            "Sent",
+                        },
+                        `${invoice.invoiceNumber} was marked as sent.`,
+                      )
+                    }
+                    className="dd-invoice-action dd-invoice-action--send"
+                  >
+                    Mark Sent
+                  </button>
+                )}
+
+                {invoice.status !==
+                  "Paid" &&
+                  invoice.status !==
+                    "Void" && (
+                    <button
+                      type="button"
+                      disabled={
+                        updating
+                      }
+                      onClick={() =>
+                        onUpdate(
+                          {
+                            amountPaid:
+                              invoice.total,
+                          },
+                          `${invoice.invoiceNumber} was marked as paid.`,
+                        )
+                      }
+                      className="dd-invoice-action dd-invoice-action--paid"
+                    >
+                      Mark Paid
+                    </button>
+                  )}
+
+                {invoice.status !==
+                  "Paid" &&
+                  invoice.status !==
+                    "Overdue" &&
+                  invoice.status !==
+                    "Void" && (
+                    <button
+                      type="button"
+                      disabled={
+                        updating
+                      }
+                      onClick={() =>
+                        onUpdate(
+                          {
+                            status:
+                              "Overdue",
+                          },
+                          `${invoice.invoiceNumber} was marked as overdue.`,
+                        )
+                      }
+                      className="dd-invoice-action dd-invoice-action--overdue"
+                    >
+                      Mark Overdue
+                    </button>
+                  )}
+
+                {invoice.status !==
+                  "Void" && (
+                  <button
+                    type="button"
+                    disabled={
+                      updating
+                    }
+                    onClick={() => {
+                      const confirmed =
+                        window.confirm(
+                          `Void ${invoice.invoiceNumber}? This preserves the invoice but marks it as void.`,
+                        );
+
+                      if (
+                        !confirmed
+                      ) {
+                        return;
+                      }
+
+                      onUpdate(
+                        {
+                          status:
+                            "Void",
+                        },
+                        `${invoice.invoiceNumber} was voided.`,
+                      );
+                    }}
+                    className="dd-invoice-action dd-invoice-action--void"
+                  >
+                    Void Invoice
+                  </button>
+                )}
+              </div>
+
+              {updating && (
+                <p className="dd-invoice-detail__updating">
+                  Updating invoice...
+                </p>
+              )}
+
+              <div className="dd-invoice-detail__updated">
+                <span>
+                  Last Updated
+                </span>
+
+                <strong>
+                  {formatDate(
+                    invoice.updatedAt,
+                    "dateTime",
+                  )}
+                </strong>
+              </div>
+            </section>
+          </aside>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function InvoiceStat({
+  label,
+  value,
+  attention = false,
+}: {
+  label: string;
+  value: string;
+  attention?: boolean;
+}) {
+  return (
+    <div className="dd-invoice-card__stat">
+      <span>
+        {label}
+      </span>
+
+      <strong
+        className={
+          attention
+            ? "dd-invoice-card__stat--attention"
+            : ""
+        }
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function MetaItem({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="dd-invoice-detail__meta">
+      <span>
+        {label}
+      </span>
+
+      <strong
+        className={
+          mono
+            ? "dd-invoice-detail__mono"
+            : ""
+        }
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function FinancialLine({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="dd-invoice-detail__financial-line">
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function InvoiceStatusBadge({
+  status,
+}: {
+  status: InvoiceStatus;
+}) {
+  return (
+    <span
+      className={[
+        "dd-invoice-status",
+        `dd-invoice-status--${status
+          .toLowerCase()
+          .replace(/\s+/g, "-")}`,
+      ].join(" ")}
+    >
+      <span />
+      {status}
+    </span>
   );
 }
