@@ -20,7 +20,8 @@ export default function ResetPasswordPage() {
   const state =
     location.state as ResetPasswordLocationState | null;
 
-  const email = state?.email?.trim().toLowerCase() ?? "";
+  const email =
+    state?.email?.trim().toLowerCase() ?? "";
 
   const [confirmationCode, setConfirmationCode] =
     useState("");
@@ -97,125 +98,273 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-red-700">
-            YNJ Vend
-          </h1>
+    <main className="dd-login dd-auth">
+      <div
+        className="dd-login__grid"
+        aria-hidden="true"
+      />
 
-          <p className="mt-2 text-slate-500">
-            Enter your verification code
-          </p>
+      <div
+        className="dd-login__glow dd-login__glow--orange"
+        aria-hidden="true"
+      />
 
-          <p className="mt-2 text-sm text-slate-400">
-            Code sent to {email}
-          </p>
-        </div>
+      <div
+        className="dd-login__glow dd-login__glow--blue"
+        aria-hidden="true"
+      />
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
+      <header className="dd-login__brand">
+        <Link
+          to="/login"
+          className="dd-login__brand-link"
+          aria-label="Distro'Dex sign in"
         >
-          <div>
-            <label
-              htmlFor="confirmation-code"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Verification Code
-            </label>
-
-            <input
-              id="confirmation-code"
-              type="text"
-              inputMode="numeric"
-              value={confirmationCode}
-              onChange={(event) =>
-                setConfirmationCode(
-                  event.target.value,
-                )
-              }
-              autoComplete="one-time-code"
-              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="new-password"
-              className="mb-2 block text-sm font-semibold"
-            >
-              New Password
-            </label>
-
-            <input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(event) =>
-                setNewPassword(
-                  event.target.value,
-                )
-              }
-              autoComplete="new-password"
-              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="confirm-new-password"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Confirm New Password
-            </label>
-
-            <input
-              id="confirm-new-password"
-              type="password"
-              value={confirmNewPassword}
-              onChange={(event) =>
-                setConfirmNewPassword(
-                  event.target.value,
-                )
-              }
-              autoComplete="new-password"
-              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              required
-            />
-          </div>
-
-          {error && (
-            <div
-              className="rounded-lg bg-red-100 p-3 text-sm text-red-700"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-red-700 py-3 font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+          <span
+            className="dd-login__brand-mark"
+            aria-hidden="true"
           >
-            {loading
-              ? "Resetting Password..."
-              : "Reset Password"}
-          </button>
-        </form>
+            D
+          </span>
 
-        <div className="mt-6 text-center">
-          <Link
-            to="/forgot-password"
-            className="text-sm font-semibold text-red-700 hover:text-red-800"
-          >
-            Request a new code
-          </Link>
+          <span className="dd-login__brand-copy">
+            <span className="dd-login__brand-name">
+              Distro&apos;Dex
+            </span>
+
+            <span className="dd-login__brand-subtitle">
+              Distribution Operations
+            </span>
+          </span>
+        </Link>
+
+        <div className="dd-login__beta">
+          <span
+            className="dd-login__beta-dot"
+            aria-hidden="true"
+          />
+          Founding Beta
         </div>
-      </div>
-    </div>
+      </header>
+
+      <section className="dd-auth__content">
+        <div className="dd-login__panel dd-auth__panel">
+          <div className="dd-login__panel-header">
+            <div>
+              <div className="dd-login__panel-kicker">
+                Verification
+              </div>
+
+              <h2>Create new password</h2>
+
+              <p>
+                Enter the verification code and choose
+                a new password for your workspace.
+              </p>
+            </div>
+
+            <div
+              className="dd-login__status"
+              title="Secure account recovery"
+            >
+              <span aria-hidden="true" />
+              Secure
+            </div>
+          </div>
+
+          <div className="dd-auth__destination">
+            <span>Code sent to</span>
+            <strong>{email}</strong>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="dd-login__form"
+          >
+            <div className="dd-login__field">
+              <label htmlFor="confirmation-code">
+                Verification code
+              </label>
+
+              <input
+                id="confirmation-code"
+                type="text"
+                inputMode="numeric"
+                value={confirmationCode}
+                onChange={(event) =>
+                  setConfirmationCode(
+                    event.target.value,
+                  )
+                }
+                autoComplete="one-time-code"
+                placeholder="Enter verification code"
+                required
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+
+            <div className="dd-login__field">
+              <label htmlFor="new-password">
+                New password
+              </label>
+
+              <input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(event) =>
+                  setNewPassword(
+                    event.target.value,
+                  )
+                }
+                autoComplete="new-password"
+                placeholder="Enter new password"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="dd-login__field">
+              <label htmlFor="confirm-new-password">
+                Confirm new password
+              </label>
+
+              <input
+                id="confirm-new-password"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(event) =>
+                  setConfirmNewPassword(
+                    event.target.value,
+                  )
+                }
+                autoComplete="new-password"
+                placeholder="Re-enter new password"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {error && (
+              <div
+                className="dd-login__notice dd-login__notice--error"
+                role="alert"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+
+                  <path
+                    d="M12 7v6M12 17h.01"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="dd-login__submit"
+            >
+              <span>
+                {loading
+                  ? "Resetting password..."
+                  : "Reset password"}
+              </span>
+
+              {!loading && (
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+
+              {loading && (
+                <span
+                  className="dd-login__spinner"
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+          </form>
+
+          <div className="dd-auth__actions">
+            <Link
+              to="/forgot-password"
+              className="dd-auth__back"
+            >
+              <span aria-hidden="true">←</span>
+              Request a new code
+            </Link>
+          </div>
+
+          <div className="dd-login__panel-footer">
+            <span
+              className="dd-login__secure-icon"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <rect
+                  x="5"
+                  y="10"
+                  width="14"
+                  height="10"
+                  rx="2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+
+                <path
+                  d="M8 10V7a4 4 0 0 1 8 0v3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+
+            Your new password is applied to your
+            Distro&apos;Dex account
+          </div>
+        </div>
+      </section>
+
+      <footer className="dd-login__footer">
+        <span>
+          DISTRO&apos;DEX / ACCOUNT RECOVERY
+        </span>
+
+        <span className="dd-login__footer-version">
+          FOUNDING BETA
+        </span>
+      </footer>
+    </main>
   );
 }

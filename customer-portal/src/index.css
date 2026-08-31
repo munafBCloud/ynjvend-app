@@ -6871,3 +6871,177 @@ tbody tr:last-child
 }
 
 /* ===== DISTRODEX INVOICES END ===== */
+
+/* ===== DISTRODEX AUTH RECOVERY START ===== */
+
+.dd-auth__content {
+  width: min(520px, calc(100% - 40px));
+  margin: auto;
+  padding: 56px 0;
+}
+
+.dd-auth__panel {
+  width: 100%;
+}
+
+.dd-auth__destination {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--dd-login-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dd-auth__destination span {
+  color: var(--dd-login-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.dd-auth__destination strong {
+  overflow: hidden;
+  color: var(--dd-login-muted-bright);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dd-auth__actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.dd-auth__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dd-login-muted-bright);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.dd-auth__back span {
+  color: var(--dd-login-orange);
+  font-size: 15px;
+}
+
+.dd-auth__back:hover {
+  color: var(--dd-login-orange);
+}
+
+/* Secure-session restoration screen */
+
+.dd-session-check {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  padding: 24px;
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      rgba(255, 122, 26, 0.055),
+      transparent 24rem
+    ),
+    #071019;
+  color: #f4f7f9;
+}
+
+.dd-session-check__brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.dd-session-check__mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 122, 26, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 122, 26, 0.08);
+  color: #ff7a1a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.dd-session-check__brand div {
+  display: flex;
+  flex-direction: column;
+}
+
+.dd-session-check__brand strong {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.dd-session-check__brand div span {
+  margin-top: 4px;
+  color: #8d9dab;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dd-session-check__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8d9dab;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dd-session-check__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 122, 26, 0.2);
+  border-top-color: #ff7a1a;
+  border-radius: 999px;
+  animation: dd-session-spin 0.8s linear infinite;
+}
+
+@keyframes dd-session-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .dd-auth__content {
+    width: calc(100% - 22px);
+    padding: 30px 0 38px;
+  }
+
+  .dd-auth__destination strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-auth__back {
+    transition: none;
+  }
+
+  .dd-session-check__spinner {
+    animation-duration: 1.4s;
+  }
+}
+
+/* ===== DISTRODEX AUTH RECOVERY END ===== */

@@ -49,72 +49,223 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-6">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-red-700">
-            YNJ Vend
-          </h1>
+    <main className="dd-login dd-auth">
+      <div
+        className="dd-login__grid"
+        aria-hidden="true"
+      />
 
-          <p className="mt-2 text-slate-500">
-            Reset your password
-          </p>
-        </div>
+      <div
+        className="dd-login__glow dd-login__glow--orange"
+        aria-hidden="true"
+      />
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
+      <div
+        className="dd-login__glow dd-login__glow--blue"
+        aria-hidden="true"
+      />
+
+      <header className="dd-login__brand">
+        <Link
+          to="/login"
+          className="dd-login__brand-link"
+          aria-label="Distro'Dex sign in"
         >
-          <div>
-            <label
-              htmlFor="reset-email"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Email
-            </label>
+          <span
+            className="dd-login__brand-mark"
+            aria-hidden="true"
+          >
+            D
+          </span>
 
-            <input
-              id="reset-email"
-              type="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              autoComplete="email"
-              className="w-full rounded-lg border border-slate-300 p-3 outline-none focus:border-red-700 focus:ring-2 focus:ring-red-100"
-              required
-            />
+          <span className="dd-login__brand-copy">
+            <span className="dd-login__brand-name">
+              Distro&apos;Dex
+            </span>
+
+            <span className="dd-login__brand-subtitle">
+              Distribution Operations
+            </span>
+          </span>
+        </Link>
+
+        <div className="dd-login__beta">
+          <span
+            className="dd-login__beta-dot"
+            aria-hidden="true"
+          />
+          Founding Beta
+        </div>
+      </header>
+
+      <section className="dd-auth__content">
+        <div className="dd-login__panel dd-auth__panel">
+          <div className="dd-login__panel-header">
+            <div>
+              <div className="dd-login__panel-kicker">
+                Account Recovery
+              </div>
+
+              <h2>Reset your password</h2>
+
+              <p>
+                Enter the email associated with your
+                Distro&apos;Dex workspace.
+              </p>
+            </div>
+
+            <div
+              className="dd-login__status"
+              title="Secure account recovery"
+            >
+              <span aria-hidden="true" />
+              Secure
+            </div>
           </div>
 
-          {error && (
-            <div
-              className="rounded-lg bg-red-100 p-3 text-sm text-red-700"
-              role="alert"
-            >
-              {error}
+          <form
+            onSubmit={handleSubmit}
+            className="dd-login__form"
+          >
+            <div className="dd-login__field">
+              <label htmlFor="reset-email">
+                Email address
+              </label>
+
+              <input
+                id="reset-email"
+                type="email"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+                autoComplete="email"
+                placeholder="you@company.com"
+                required
+                disabled={loading}
+                autoFocus
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-red-700 py-3 font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading
-              ? "Sending Code..."
-              : "Send Reset Code"}
-          </button>
-        </form>
+            {error && (
+              <div
+                className="dd-login__notice dd-login__notice--error"
+                role="alert"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
 
-        <div className="mt-6 text-center">
-          <Link
-            to="/login"
-            className="text-sm font-semibold text-red-700 hover:text-red-800"
-          >
-            Return to sign in
-          </Link>
+                  <path
+                    d="M12 7v6M12 17h.01"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="dd-login__submit"
+            >
+              <span>
+                {loading
+                  ? "Sending code..."
+                  : "Send reset code"}
+              </span>
+
+              {!loading && (
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+
+              {loading && (
+                <span
+                  className="dd-login__spinner"
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+          </form>
+
+          <div className="dd-auth__actions">
+            <Link
+              to="/login"
+              className="dd-auth__back"
+            >
+              <span aria-hidden="true">←</span>
+              Return to sign in
+            </Link>
+          </div>
+
+          <div className="dd-login__panel-footer">
+            <span
+              className="dd-login__secure-icon"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24">
+                <rect
+                  x="5"
+                  y="10"
+                  width="14"
+                  height="10"
+                  rx="2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+
+                <path
+                  d="M8 10V7a4 4 0 0 1 8 0v3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+
+            Verification codes are delivered through
+            your secure account recovery channel
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <footer className="dd-login__footer">
+        <span>
+          DISTRO&apos;DEX / ACCOUNT RECOVERY
+        </span>
+
+        <span className="dd-login__footer-version">
+          FOUNDING BETA
+        </span>
+      </footer>
+    </main>
   );
 }

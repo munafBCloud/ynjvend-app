@@ -14,11 +14,6 @@ const ownerNavigation = [
     code: "01",
   },
   {
-    label: "Analytics",
-    path: "/owner/analytics",
-    code: "02",
-  },
-  {
     label: "Orders",
     path: "/owner/orders",
     code: "03",
@@ -66,10 +61,6 @@ const mobilePrimaryNavigation = [
 ];
 
 const mobileSecondaryNavigation = [
-  {
-    label: "Analytics",
-    path: "/owner/analytics",
-  },
   {
     label: "Invoices",
     path: "/owner/invoices",
@@ -268,7 +259,7 @@ export default function OwnerLayout() {
               <div className="flex items-center gap-3">
                 <div className="hidden text-right sm:block">
                   <p className="text-xs font-semibold text-[var(--dd-text)]">
-                    Owner Portal
+                    Operations Workspace
                   </p>
 
                   <p className="mt-0.5 max-w-[230px] truncate text-xs text-[var(--dd-text-muted)]">
