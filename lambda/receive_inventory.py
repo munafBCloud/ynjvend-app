@@ -43,7 +43,11 @@ ALLOWED_FIELDS = {
 
 def decimal_default(value):
     if isinstance(value, Decimal):
-        return int(value) if value == value.to_integral_value() else float(value)
+        return (
+            int(value)
+            if value == value.to_integral_value()
+            else float(value)
+        )
 
     raise TypeError(
         f"Object of type {type(value).__name__} "
@@ -141,6 +145,204 @@ def parse_positive_integer(value, field_name):
     return number
 
 
+def get_idempotency_key(event):
+    headers = event.get("headers") or {}
+
+    value = None
+
+    for key, header_value in headers.items():
+        if (
+            isinstance(key, str)
+            and key.lower() == "idempotency-key"
+        ):
+            value = header_value
+            break
+
+    if not isinstance(value, str):
+        raise ValueError(
+            "Idempotency-Key header is required."
+        )
+
+    value = value.strip()
+
+    if not value:
+        raise ValueError(
+            "Idempotency-Key header is required."
+        )
+
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError):
+        raise ValueError(
+            "Idempotency-Key header must be a valid UUID."
+        )
+
+    return str(parsed)
+
+
+def receipt_matches_request(
+    receipt,
+    *,
+    barcode,
+    quantity_received,
+    session_id,
+    received_by,
+):
+    try:
+        stored_quantity = int(
+            receipt.get("quantityReceived")
+        )
+    except (TypeError, ValueError):
+        return False
+
+    return (
+        receipt.get("barcode") == barcode
+        and stored_quantity == quantity_received
+        and (receipt.get("sessionId") or "")
+        == (session_id or "")
+        and receipt.get("receivedBy") == received_by
+    )
+
+
+def get_receipt(company_id, receipt_id):
+    result = receipts_table.get_item(
+        Key={
+            "companyId": company_id,
+            "receiptId": receipt_id,
+        },
+        ConsistentRead=True,
+    )
+
+    return result.get("Item")
+
+
+def replay_response(
+    *,
+    company_id,
+    receipt_id,
+    receipt,
+):
+    product_id = str(
+        receipt.get("productId", "")
+    ).strip()
+
+    if not product_id:
+        logger.error(
+            "Idempotent receipt missing productId: "
+            "companyId=%s receiptId=%s",
+            company_id,
+            receipt_id,
+        )
+
+        return response(
+            409,
+            {
+                "message": (
+                    "The original receiving operation "
+                    "exists but its inventory reference "
+                    "is unavailable."
+                )
+            },
+        )
+
+    replay_inventory_response = (
+        inventory_table.get_item(
+            Key={
+                "companyId": company_id,
+                "productId": product_id,
+            },
+            ConsistentRead=True,
+        )
+    )
+
+    replay_inventory_item = (
+        replay_inventory_response.get("Item")
+    )
+
+    if not replay_inventory_item:
+        logger.error(
+            "Idempotent receipt references missing "
+            "inventory: companyId=%s receiptId=%s "
+            "productId=%s",
+            company_id,
+            receipt_id,
+            product_id,
+        )
+
+        return response(
+            409,
+            {
+                "message": (
+                    "The original receiving operation "
+                    "exists but its inventory item is "
+                    "unavailable."
+                )
+            },
+        )
+
+    logger.info(
+        "Inventory receive replay: "
+        "companyId=%s productId=%s receiptId=%s",
+        company_id,
+        product_id,
+        receipt_id,
+    )
+
+    return response(
+        200,
+        {
+            "message": (
+                "Inventory receipt already processed."
+            ),
+            "item": replay_inventory_item,
+            "receipt": receipt,
+            "idempotentReplay": True,
+        },
+    )
+
+
+def resolve_existing_receipt(
+    *,
+    company_id,
+    receipt_id,
+    barcode,
+    quantity_received,
+    session_id,
+    received_by,
+):
+    existing_receipt = get_receipt(
+        company_id,
+        receipt_id,
+    )
+
+    if not existing_receipt:
+        return None
+
+    if not receipt_matches_request(
+        existing_receipt,
+        barcode=barcode,
+        quantity_received=quantity_received,
+        session_id=session_id,
+        received_by=received_by,
+    ):
+        return response(
+            409,
+            {
+                "message": (
+                    "Idempotency key has already been "
+                    "used for a different receiving "
+                    "request."
+                )
+            },
+        )
+
+    return replay_response(
+        company_id=company_id,
+        receipt_id=receipt_id,
+        receipt=existing_receipt,
+    )
+
+
 def lambda_handler(event, context):
     try:
         company_id, received_by = get_identity(event)
@@ -149,7 +351,9 @@ def lambda_handler(event, context):
             return response(
                 403,
                 {
-                    "message": "Company access could not be verified."
+                    "message": (
+                        "Company access could not be verified."
+                    )
                 },
             )
 
@@ -157,17 +361,35 @@ def lambda_handler(event, context):
             return response(
                 403,
                 {
-                    "message": "Authenticated user could not be verified."
+                    "message": (
+                        "Authenticated user could not be verified."
+                    )
                 },
             )
 
         try:
-            body = json.loads(event.get("body") or "{}")
+            idempotency_key = get_idempotency_key(
+                event
+            )
+        except ValueError as error:
+            return response(
+                400,
+                {
+                    "message": str(error)
+                },
+            )
+
+        try:
+            body = json.loads(
+                event.get("body") or "{}"
+            )
         except json.JSONDecodeError:
             return response(
                 400,
                 {
-                    "message": "Request body must contain valid JSON."
+                    "message": (
+                        "Request body must contain valid JSON."
+                    )
                 },
             )
 
@@ -175,7 +397,9 @@ def lambda_handler(event, context):
             return response(
                 400,
                 {
-                    "message": "Request body must be a JSON object."
+                    "message": (
+                        "Request body must be a JSON object."
+                    )
                 },
             )
 
@@ -187,7 +411,9 @@ def lambda_handler(event, context):
             return response(
                 400,
                 {
-                    "message": "Unexpected fields were provided.",
+                    "message": (
+                        "Unexpected fields were provided."
+                    ),
                     "fields": unexpected_fields,
                 },
             )
@@ -208,7 +434,9 @@ def lambda_handler(event, context):
             return response(
                 400,
                 {
-                    "message": "barcode cannot exceed 80 characters."
+                    "message": (
+                        "barcode cannot exceed 80 characters."
+                    )
                 },
             )
 
@@ -220,16 +448,19 @@ def lambda_handler(event, context):
             return response(
                 400,
                 {
-                    "message": "sessionId cannot exceed 100 characters."
+                    "message": (
+                        "sessionId cannot exceed 100 characters."
+                    )
                 },
             )
 
         try:
-            quantity_received = parse_positive_integer(
-                body.get("quantityReceived"),
-                "quantityReceived",
+            quantity_received = (
+                parse_positive_integer(
+                    body.get("quantityReceived"),
+                    "quantityReceived",
+                )
             )
-
         except ValueError as error:
             return response(
                 400,
@@ -237,6 +468,24 @@ def lambda_handler(event, context):
                     "message": str(error)
                 },
             )
+
+        receipt_id = f"rcv-{idempotency_key}"
+
+        # Resolve a previously successful operation before
+        # consulting mutable barcode, session, or inventory
+        # state. This allows a delayed retry to succeed even
+        # if the original session has since been completed.
+        existing_result = resolve_existing_receipt(
+            company_id=company_id,
+            receipt_id=receipt_id,
+            barcode=barcode,
+            quantity_received=quantity_received,
+            session_id=session_id,
+            received_by=received_by,
+        )
+
+        if existing_result is not None:
+            return existing_result
 
         registry_response = barcode_table.get_item(
             Key={
@@ -252,7 +501,9 @@ def lambda_handler(event, context):
             return response(
                 404,
                 {
-                    "message": "Inventory product not found for barcode."
+                    "message": (
+                        "Inventory product not found for barcode."
+                    )
                 },
             )
 
@@ -271,11 +522,11 @@ def lambda_handler(event, context):
             return response(
                 500,
                 {
-                    "message": "Barcode registry is inconsistent."
+                    "message": (
+                        "Barcode registry is inconsistent."
+                    )
                 },
             )
-
-        session_item = None
 
         if session_id:
             session_response = sessions_table.get_item(
@@ -292,7 +543,9 @@ def lambda_handler(event, context):
                 return response(
                     404,
                     {
-                        "message": "Receiving session not found."
+                        "message": (
+                            "Receiving session not found."
+                        )
                     },
                 )
 
@@ -300,7 +553,9 @@ def lambda_handler(event, context):
                 return response(
                     409,
                     {
-                        "message": "Receiving session is not open."
+                        "message": (
+                            "Receiving session is not open."
+                        )
                     },
                 )
 
@@ -316,8 +571,9 @@ def lambda_handler(event, context):
 
         if not inventory_item:
             logger.error(
-                "Barcode references missing inventory product: "
-                "companyId=%s barcode=%s productId=%s",
+                "Barcode references missing inventory "
+                "product: companyId=%s barcode=%s "
+                "productId=%s",
                 company_id,
                 barcode,
                 product_id,
@@ -326,7 +582,9 @@ def lambda_handler(event, context):
             return response(
                 500,
                 {
-                    "message": "Barcode registry is inconsistent."
+                    "message": (
+                        "Barcode registry is inconsistent."
+                    )
                 },
             )
 
@@ -338,11 +596,16 @@ def lambda_handler(event, context):
             current_quantity = None
 
         try:
-            current_quantity = int(current_quantity)
+            current_quantity = int(
+                current_quantity
+            )
         except (TypeError, ValueError):
             current_quantity = None
 
-        if current_quantity is None or current_quantity < 0:
+        if (
+            current_quantity is None
+            or current_quantity < 0
+        ):
             logger.error(
                 "Invalid quantityInStock for product: "
                 "companyId=%s productId=%s",
@@ -353,7 +616,9 @@ def lambda_handler(event, context):
             return response(
                 500,
                 {
-                    "message": "Inventory quantity is invalid."
+                    "message": (
+                        "Inventory quantity is invalid."
+                    )
                 },
             )
 
@@ -365,11 +630,10 @@ def lambda_handler(event, context):
             timezone.utc
         ).isoformat()
 
-        receipt_id = f"rcv-{uuid.uuid4()}"
-
         receipt_item = {
             "companyId": company_id,
             "receiptId": receipt_id,
+            "idempotencyKey": idempotency_key,
             "productId": product_id,
             "barcode": barcode,
             "quantityReceived": quantity_received,
@@ -384,70 +648,74 @@ def lambda_handler(event, context):
             receipt_item["sessionId"] = session_id
 
         transaction_items = [
-                {
-                    "ConditionCheck": {
-                        "TableName": barcode_table.name,
-                        "Key": serialize_item(
+            {
+                "ConditionCheck": {
+                    "TableName": barcode_table.name,
+                    "Key": serialize_item(
+                        {
+                            "companyId": company_id,
+                            "barcode": barcode,
+                        }
+                    ),
+                    "ConditionExpression": (
+                        "#productId = :productId"
+                    ),
+                    "ExpressionAttributeNames": {
+                        "#productId": "productId"
+                    },
+                    "ExpressionAttributeValues": (
+                        serialize_values(
                             {
-                                "companyId": company_id,
-                                "barcode": barcode,
+                                ":productId": product_id
                             }
-                        ),
-                        "ConditionExpression": (
-                            "#productId = :productId"
-                        ),
-                        "ExpressionAttributeNames": {
-                            "#productId": "productId"
-                        },
-                        "ExpressionAttributeValues": (
-                            serialize_values(
-                                {
-                                    ":productId": product_id
-                                }
-                            )
-                        ),
-                    }
-                },
-                {
-                    "Update": {
-                        "TableName": inventory_table.name,
-                        "Key": serialize_item(
+                        )
+                    ),
+                }
+            },
+            {
+                "Update": {
+                    "TableName": inventory_table.name,
+                    "Key": serialize_item(
+                        {
+                            "companyId": company_id,
+                            "productId": product_id,
+                        }
+                    ),
+                    "UpdateExpression": (
+                        "SET quantityInStock = :newQuantity, "
+                        "updatedAt = :updatedAt"
+                    ),
+                    "ConditionExpression": (
+                        "attribute_exists(companyId) "
+                        "AND attribute_exists(productId) "
+                        "AND quantityInStock = :previousQuantity"
+                    ),
+                    "ExpressionAttributeValues": (
+                        serialize_values(
                             {
-                                "companyId": company_id,
-                                "productId": product_id,
+                                ":newQuantity": new_quantity,
+                                ":previousQuantity": (
+                                    current_quantity
+                                ),
+                                ":updatedAt": received_at,
                             }
-                        ),
-                        "UpdateExpression": (
-                            "SET quantityInStock = :newQuantity, "
-                            "updatedAt = :updatedAt"
-                        ),
-                        "ConditionExpression": (
-                            "attribute_exists(companyId) "
-                            "AND attribute_exists(productId) "
-                            "AND quantityInStock = :previousQuantity"
-                        ),
-                        "ExpressionAttributeValues": (
-                            serialize_values(
-                                {
-                                    ":newQuantity": new_quantity,
-                                    ":previousQuantity": current_quantity,
-                                    ":updatedAt": received_at,
-                                }
-                            )
-                        ),
-                    }
-                },
-                {
-                    "Put": {
-                        "TableName": receipts_table.name,
-                        "Item": serialize_item(receipt_item),
-                        "ConditionExpression": (
-                            "attribute_not_exists(companyId) "
-                            "AND attribute_not_exists(receiptId)"
-                        ),
-                    }
-                },
-            ]
+                        )
+                    ),
+                }
+            },
+            {
+                "Put": {
+                    "TableName": receipts_table.name,
+                    "Item": serialize_item(
+                        receipt_item
+                    ),
+                    "ConditionExpression": (
+                        "attribute_not_exists(companyId) "
+                        "AND attribute_not_exists(receiptId)"
+                    ),
+                }
+            },
+        ]
 
         if session_id:
             transaction_items.append(
@@ -461,7 +729,8 @@ def lambda_handler(event, context):
                             }
                         ),
                         "UpdateExpression": (
-                            "SET receiptCount = receiptCount + :one, "
+                            "SET receiptCount = "
+                            "receiptCount + :one, "
                             "totalUnitsReceived = "
                             "totalUnitsReceived + :quantity, "
                             "updatedAt = :updatedAt"
@@ -478,7 +747,9 @@ def lambda_handler(event, context):
                             serialize_values(
                                 {
                                     ":one": 1,
-                                    ":quantity": quantity_received,
+                                    ":quantity": (
+                                        quantity_received
+                                    ),
                                     ":updatedAt": received_at,
                                     ":open": "OPEN",
                                 }
@@ -488,9 +759,51 @@ def lambda_handler(event, context):
                 }
             )
 
-        dynamodb_client.transact_write_items(
-            TransactItems=transaction_items
-        )
+        try:
+            dynamodb_client.transact_write_items(
+                TransactItems=transaction_items
+            )
+
+        except ClientError as error:
+            error_code = (
+                error.response
+                .get("Error", {})
+                .get("Code", "")
+            )
+
+            if (
+                error_code
+                != "TransactionCanceledException"
+            ):
+                raise
+
+            # Another identical request may have won the
+            # deterministic receipt race. Re-read the receipt
+            # consistently before treating the cancellation as
+            # an ordinary inventory/session concurrency failure.
+            concurrent_result = (
+                resolve_existing_receipt(
+                    company_id=company_id,
+                    receipt_id=receipt_id,
+                    barcode=barcode,
+                    quantity_received=quantity_received,
+                    session_id=session_id,
+                    received_by=received_by,
+                )
+            )
+
+            if concurrent_result is not None:
+                return concurrent_result
+
+            return response(
+                409,
+                {
+                    "message": (
+                        "Inventory changed while receiving. "
+                        "Retry the receiving operation."
+                    )
+                },
+            )
 
         updated_response = inventory_table.get_item(
             Key={
@@ -506,8 +819,9 @@ def lambda_handler(event, context):
         )
 
         logger.info(
-            "Inventory received: companyId=%s productId=%s "
-            "receiptId=%s quantityReceived=%s",
+            "Inventory received: companyId=%s "
+            "productId=%s receiptId=%s "
+            "quantityReceived=%s",
             company_id,
             product_id,
             receipt_id,
@@ -517,30 +831,15 @@ def lambda_handler(event, context):
         return response(
             201,
             {
-                "message": "Inventory received successfully.",
+                "message": (
+                    "Inventory received successfully."
+                ),
                 "item": updated_item,
                 "receipt": receipt_item,
             },
         )
 
-    except ClientError as error:
-        error_code = (
-            error.response
-            .get("Error", {})
-            .get("Code", "")
-        )
-
-        if error_code == "TransactionCanceledException":
-            return response(
-                409,
-                {
-                    "message": (
-                        "Inventory changed while receiving. "
-                        "Retry the receiving operation."
-                    )
-                },
-            )
-
+    except ClientError:
         logger.exception(
             "DynamoDB error receiving inventory"
         )

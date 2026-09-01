@@ -46,6 +46,7 @@ resource "aws_apigatewayv2_api" "ynj_api" {
     allow_headers = [
       "Authorization",
       "Content-Type",
+      "Idempotency-Key",
     ]
 
     max_age = 3600

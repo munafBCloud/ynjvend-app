@@ -199,6 +199,7 @@ data "aws_iam_policy_document" "lambda_receiving_dynamodb" {
 
     actions = [
       "dynamodb:PutItem",
+      "dynamodb:GetItem",
     ]
 
     resources = [

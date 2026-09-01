@@ -8,20 +8,38 @@ import uuid
 import boto3
 
 
-def request(method, url, token, body=None):
+def request(
+    method,
+    url,
+    token,
+    body=None,
+    idempotency_key="auto",
+):
     data = None
 
     if body is not None:
         data = json.dumps(body).encode("utf-8")
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    if url.endswith("/inventory/receive"):
+        if idempotency_key == "auto":
+            headers["Idempotency-Key"] = str(
+                uuid.uuid4()
+            )
+        elif idempotency_key is not None:
+            headers["Idempotency-Key"] = (
+                idempotency_key
+            )
+
     req = urllib.request.Request(
         url,
         data=data,
         method=method,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
     )
 
     try:
@@ -143,6 +161,49 @@ def main():
         # Validation
         # -------------------------------------------------
 
+        # -------------------------------------------------
+        # Idempotency-Key validation
+        # -------------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "barcode": barcode,
+                "quantityReceived": 2,
+            },
+            idempotency_key=None,
+        )
+
+        expect_status(
+            "Reject missing Idempotency-Key",
+            status,
+            400,
+        )
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "barcode": barcode,
+                "quantityReceived": 2,
+            },
+            idempotency_key="not-a-valid-uuid",
+        )
+
+        expect_status(
+            "Reject malformed Idempotency-Key",
+            status,
+            400,
+        )
+
+        print(
+            "[PASS] Receiving requires a valid "
+            "Idempotency-Key"
+        )
+
         invalid_cases = [
             (
                 "Reject zero receive quantity",
@@ -230,6 +291,8 @@ def main():
         # Successful receiving
         # -------------------------------------------------
 
+        receive_key = str(uuid.uuid4())
+
         status, body = request(
             "POST",
             f"{api}/inventory/receive",
@@ -238,6 +301,7 @@ def main():
                 "barcode": barcode,
                 "quantityReceived": 7,
             },
+            idempotency_key=receive_key,
         )
 
         expect_status(
@@ -305,7 +369,123 @@ def main():
 
         receipt_ids.append(receipt_id)
 
+        expect(
+            receipt_id == f"rcv-{receive_key}",
+            "Receipt ID does not match Idempotency-Key",
+        )
+
+        expect(
+            receipt.get("idempotencyKey") == receive_key,
+            "Receipt did not persist Idempotency-Key",
+        )
+
         print("[PASS] Receipt response fields are correct")
+
+        # -------------------------------------------------
+        # Exact replay must not mutate inventory again.
+        # -------------------------------------------------
+
+        status, replay_body = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "barcode": barcode,
+                "quantityReceived": 7,
+            },
+            idempotency_key=receive_key,
+        )
+
+        expect_status(
+            "Replay identical receive",
+            status,
+            200,
+        )
+
+        expect(
+            replay_body.get("idempotentReplay") is True,
+            "Replay response was not marked idempotent",
+        )
+
+        replay_receipt = replay_body.get(
+            "receipt",
+            {},
+        )
+
+        expect(
+            replay_receipt.get("receiptId")
+            == receipt_id,
+            "Replay returned a different receipt",
+        )
+
+        inventory_after_replay = (
+            inventory_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "productId": product_a,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                inventory_after_replay[
+                    "quantityInStock"
+                ]
+            ) == 17,
+            "Idempotent replay incremented inventory twice",
+        )
+
+        print(
+            "[PASS] Identical retry returns original "
+            "receipt without inventory mutation"
+        )
+
+        # -------------------------------------------------
+        # Same key + different request must conflict.
+        # -------------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "barcode": barcode,
+                "quantityReceived": 8,
+            },
+            idempotency_key=receive_key,
+        )
+
+        expect_status(
+            "Reject Idempotency-Key reuse with different payload",
+            status,
+            409,
+        )
+
+        inventory_after_conflict = (
+            inventory_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "productId": product_a,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                inventory_after_conflict[
+                    "quantityInStock"
+                ]
+            ) == 17,
+            "Idempotency conflict changed inventory",
+        )
+
+        print(
+            "[PASS] Idempotency-Key payload conflict "
+            "is fail-closed"
+        )
 
         # -------------------------------------------------
         # Verify persisted inventory

@@ -179,6 +179,9 @@ export default function OwnerReceivingPage() {
 
   const scanLockedRef = useRef(false);
 
+  const receiveIdempotencyKeyRef =
+    useRef<string | null>(null);
+
   function clearUnknownBarcode() {
     setUnknownBarcode("");
     setAddProductOpen(false);
@@ -596,17 +599,25 @@ export default function OwnerReceivingPage() {
       setLoading(true);
       setError("");
 
+      if (!receiveIdempotencyKeyRef.current) {
+        receiveIdempotencyKeyRef.current =
+          crypto.randomUUID();
+      }
+
       const result =
-        await receiveInventory({
-          sessionId:
-            session.sessionId,
+        await receiveInventory(
+          {
+            sessionId:
+              session.sessionId,
 
-          barcode:
-            barcode.trim(),
+            barcode:
+              barcode.trim(),
 
-          quantityReceived:
-            parsedQuantity,
-        });
+            quantityReceived:
+              parsedQuantity,
+          },
+          receiveIdempotencyKeyRef.current,
+        );
 
       setSession((current) =>
         current
@@ -640,6 +651,8 @@ export default function OwnerReceivingPage() {
       setQuantity("1");
 
       clearUnknownBarcode();
+
+      receiveIdempotencyKeyRef.current = null;
     } catch (receiveError) {
       setError(
         receiveError instanceof Error
@@ -683,6 +696,8 @@ export default function OwnerReceivingPage() {
   function handleNewSession() {
     closeCamera();
 
+    receiveIdempotencyKeyRef.current = null;
+
     setSession(null);
 
     setReference("");
@@ -700,6 +715,8 @@ export default function OwnerReceivingPage() {
   }
 
   function handleScanAnother() {
+    receiveIdempotencyKeyRef.current = null;
+
     setBarcode("");
     setProduct(null);
     setQuantity("1");

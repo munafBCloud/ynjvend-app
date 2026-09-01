@@ -31,11 +31,15 @@ export async function lookupInventoryByBarcode(
 
 export async function receiveInventory(
   input: ReceiveInventoryInput,
+  idempotencyKey: string,
 ): Promise<ReceiveInventoryResponse> {
   return apiRequest<ReceiveInventoryResponse>(
     "/inventory/receive",
     {
       method: "POST",
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
       body: JSON.stringify(input),
     },
   );

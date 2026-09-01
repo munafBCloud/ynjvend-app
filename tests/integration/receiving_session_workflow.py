@@ -8,20 +8,38 @@ import uuid
 import boto3
 
 
-def request(method, url, token, body=None):
+def request(
+    method,
+    url,
+    token,
+    body=None,
+    idempotency_key="auto",
+):
     data = None
 
     if body is not None:
         data = json.dumps(body).encode("utf-8")
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    if url.endswith("/inventory/receive"):
+        if idempotency_key == "auto":
+            headers["Idempotency-Key"] = str(
+                uuid.uuid4()
+            )
+        elif idempotency_key is not None:
+            headers["Idempotency-Key"] = (
+                idempotency_key
+            )
+
     req = urllib.request.Request(
         url,
         data=data,
         method=method,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
     )
 
     try:
@@ -224,6 +242,8 @@ def main():
         # Receive within session
         # ---------------------------------------------
 
+        session_receive_key = str(uuid.uuid4())
+
         status, body = request(
             "POST",
             f"{api}/inventory/receive",
@@ -233,6 +253,7 @@ def main():
                 "barcode": barcode,
                 "quantityReceived": 6,
             },
+            idempotency_key=session_receive_key,
         )
 
         expect_status(
@@ -301,6 +322,152 @@ def main():
         )
 
         print("[PASS] Session counters updated atomically")
+
+        # ---------------------------------------------
+        # Replay same session receive.
+        # ---------------------------------------------
+
+        status, replay_body = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "sessionId": session_id,
+                "barcode": barcode,
+                "quantityReceived": 6,
+            },
+            idempotency_key=session_receive_key,
+        )
+
+        expect_status(
+            "Replay identical session receive",
+            status,
+            200,
+        )
+
+        expect(
+            replay_body.get("idempotentReplay") is True,
+            "Session replay was not marked idempotent",
+        )
+
+        expect(
+            replay_body.get(
+                "receipt",
+                {},
+            ).get("receiptId") == receipt_id,
+            "Session replay returned different receipt",
+        )
+
+        session_after_replay = (
+            sessions_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "sessionId": session_id,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                session_after_replay.get(
+                    "receiptCount",
+                    -1,
+                )
+            ) == 1,
+            "Session replay incremented receiptCount",
+        )
+
+        expect(
+            int(
+                session_after_replay.get(
+                    "totalUnitsReceived",
+                    -1,
+                )
+            ) == 6,
+            "Session replay incremented totalUnitsReceived",
+        )
+
+        inventory_after_session_replay = (
+            inventory_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "productId": product_a,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                inventory_after_session_replay[
+                    "quantityInStock"
+                ]
+            ) == 11,
+            "Session replay incremented inventory twice",
+        )
+
+        print(
+            "[PASS] Session replay leaves inventory "
+            "and counters unchanged"
+        )
+
+        # ---------------------------------------------
+        # Same key + different quantity must conflict.
+        # ---------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "sessionId": session_id,
+                "barcode": barcode,
+                "quantityReceived": 7,
+            },
+            idempotency_key=session_receive_key,
+        )
+
+        expect_status(
+            "Reject session Idempotency-Key payload conflict",
+            status,
+            409,
+        )
+
+        session_after_conflict = (
+            sessions_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "sessionId": session_id,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                session_after_conflict.get(
+                    "receiptCount",
+                    -1,
+                )
+            ) == 1,
+            "Idempotency conflict changed receiptCount",
+        )
+
+        expect(
+            int(
+                session_after_conflict.get(
+                    "totalUnitsReceived",
+                    -1,
+                )
+            ) == 6,
+            "Idempotency conflict changed session units",
+        )
+
+        print(
+            "[PASS] Session idempotency conflict "
+            "leaves counters unchanged"
+        )
 
         # ---------------------------------------------
         # Verify persisted receipt linkage
@@ -374,6 +541,142 @@ def main():
         )
 
         print("[PASS] Receiving session completed correctly")
+
+        # ---------------------------------------------
+        # Replay the original successful receive after
+        # the session has been completed.
+        #
+        # Idempotency must resolve the persisted receipt
+        # before evaluating the session's current status.
+        # ---------------------------------------------
+
+        inventory_before_completed_replay = (
+            inventory_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "productId": product_a,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        quantity_before_completed_replay = int(
+            inventory_before_completed_replay[
+                "quantityInStock"
+            ]
+        )
+
+        status, completed_replay_body = request(
+            "POST",
+            f"{api}/inventory/receive",
+            args.token_a,
+            {
+                "sessionId": session_id,
+                "barcode": barcode,
+                "quantityReceived": 6,
+            },
+            idempotency_key=session_receive_key,
+        )
+
+        expect_status(
+            "Replay original receive after session completion",
+            status,
+            200,
+        )
+
+        expect(
+            completed_replay_body.get(
+                "idempotentReplay"
+            ) is True,
+            (
+                "Completed-session replay was not "
+                "marked idempotent"
+            ),
+        )
+
+        expect(
+            completed_replay_body.get(
+                "receipt",
+                {},
+            ).get("receiptId") == receipt_id,
+            (
+                "Completed-session replay returned "
+                "a different receipt"
+            ),
+        )
+
+        inventory_after_completed_replay = (
+            inventory_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "productId": product_a,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            int(
+                inventory_after_completed_replay[
+                    "quantityInStock"
+                ]
+            ) == quantity_before_completed_replay,
+            (
+                "Completed-session replay changed "
+                "inventory quantity"
+            ),
+        )
+
+        session_after_completed_replay = (
+            sessions_table.get_item(
+                Key={
+                    "companyId": company_a,
+                    "sessionId": session_id,
+                },
+                ConsistentRead=True,
+            ).get("Item")
+        )
+
+        expect(
+            session_after_completed_replay.get(
+                "status"
+            ) == "COMPLETED",
+            (
+                "Completed-session replay changed "
+                "session status"
+            ),
+        )
+
+        expect(
+            int(
+                session_after_completed_replay.get(
+                    "receiptCount",
+                    -1,
+                )
+            ) == 1,
+            (
+                "Completed-session replay changed "
+                "receiptCount"
+            ),
+        )
+
+        expect(
+            int(
+                session_after_completed_replay.get(
+                    "totalUnitsReceived",
+                    -1,
+                )
+            ) == 6,
+            (
+                "Completed-session replay changed "
+                "totalUnitsReceived"
+            ),
+        )
+
+        print(
+            "[PASS] Completed-session replay returns "
+            "original receipt without mutation"
+        )
 
         # ---------------------------------------------
         # Reject duplicate completion
