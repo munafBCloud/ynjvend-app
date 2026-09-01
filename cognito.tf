@@ -67,6 +67,20 @@ resource "aws_cognito_user_pool_client" "owner_portal" {
 
   generate_secret = false
 
+  # Security boundary:
+  # companyId and role are authorization claims assigned by administrators.
+  # Portal users may read these attributes but must never modify them.
+  read_attributes = [
+    "email",
+    "email_verified",
+    "custom:companyId",
+    "custom:role",
+  ]
+
+  write_attributes = [
+    "email",
+  ]
+
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_USER_PASSWORD_AUTH",
