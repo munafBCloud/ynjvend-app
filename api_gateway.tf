@@ -1,11 +1,54 @@
+locals {
+  cors_allowed_origins_by_environment = {
+    dev = [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:4173",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+      "http://127.0.0.1:4173",
+      "http://192.168.56.10:5173",
+    ]
+
+    test = [
+      "http://localhost:5173",
+    ]
+
+    prod = [
+      "https://distrodexapp.com",
+      "https://www.distrodexapp.com",
+      "https://app.distrodexapp.com",
+    ]
+  }
+
+  cors_allowed_origins = lookup(
+    local.cors_allowed_origins_by_environment,
+    var.environment,
+    []
+  )
+}
+
 resource "aws_apigatewayv2_api" "ynj_api" {
   name          = "${var.project_name}-${var.environment}-api"
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["*"]
-    allow_methods = ["GET", "POST", "PUT", "DELETE"]
-    allow_headers = ["*"]
+    allow_origins = local.cors_allowed_origins
+
+    allow_methods = [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS",
+    ]
+
+    allow_headers = [
+      "Authorization",
+      "Content-Type",
+    ]
+
+    max_age = 3600
   }
 }
 
