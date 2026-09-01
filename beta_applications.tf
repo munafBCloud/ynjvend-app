@@ -3,6 +3,12 @@
 # =========================================================
 
 resource "aws_dynamodb_table" "beta_applications" {
+  deletion_protection_enabled = local.dynamodb_deletion_protection_enabled
+
+  point_in_time_recovery {
+    enabled = local.dynamodb_pitr_enabled
+  }
+
   name         = "${var.project_name}-${var.environment}-beta-applications"
   billing_mode = "PAY_PER_REQUEST"
 
