@@ -25,7 +25,7 @@ resource "aws_dynamodb_table" "beta_applications" {
 resource "aws_lambda_function" "create_beta_application" {
   function_name = "${var.project_name}-${var.environment}-create-beta-application"
 
-  role    = aws_iam_role.lambda_execution_role.arn
+  role    = aws_iam_role.lambda_beta_applications_role.arn
   runtime = "python3.13"
   handler = "create_beta_application.lambda_handler"
 
@@ -48,6 +48,11 @@ resource "aws_lambda_function" "create_beta_application" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_beta_applications_permissions,
+    aws_iam_role_policy_attachment.lambda_beta_applications_basic_execution,
+  ]
 }
 
 

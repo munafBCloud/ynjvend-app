@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "create_customer" {
   function_name = "${var.project_name}-${var.environment}-create-customer"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_customers_role.arn
 
   runtime = "python3.13"
   handler = "create_customer.lambda_handler"
@@ -21,12 +21,17 @@ resource "aws_lambda_function" "create_customer" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_customers_dynamodb,
+    aws_iam_role_policy_attachment.lambda_customers_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "get_customers" {
   function_name = "${var.project_name}-${var.environment}-get-customers"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_customers_role.arn
 
   runtime = "python3.13"
   handler = "get_customers.lambda_handler"
@@ -46,12 +51,17 @@ resource "aws_lambda_function" "get_customers" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_customers_dynamodb,
+    aws_iam_role_policy_attachment.lambda_customers_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "update_customer" {
   function_name = "${var.project_name}-${var.environment}-update-customer"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_customers_role.arn
 
   runtime = "python3.13"
   handler = "update_customer.lambda_handler"
@@ -73,12 +83,17 @@ resource "aws_lambda_function" "update_customer" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_customers_dynamodb,
+    aws_iam_role_policy_attachment.lambda_customers_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "delete_customer" {
   function_name = "${var.project_name}-${var.environment}-delete-customer"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_customers_role.arn
 
   runtime = "python3.13"
   handler = "delete_customer.lambda_handler"
@@ -100,4 +115,9 @@ resource "aws_lambda_function" "delete_customer" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_customers_dynamodb,
+    aws_iam_role_policy_attachment.lambda_customers_basic_execution,
+  ]
 }

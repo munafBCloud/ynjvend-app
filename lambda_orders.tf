@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "create_order" {
   function_name = "${var.project_name}-${var.environment}-create-order"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_orders_role.arn
 
   runtime = "python3.13"
   handler = "create_order.lambda_handler"
@@ -23,12 +23,17 @@ resource "aws_lambda_function" "create_order" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_orders_dynamodb,
+    aws_iam_role_policy_attachment.lambda_orders_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "get_orders" {
   function_name = "${var.project_name}-${var.environment}-get-orders"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_orders_role.arn
 
   runtime = "python3.13"
   handler = "get_orders.lambda_handler"
@@ -48,12 +53,17 @@ resource "aws_lambda_function" "get_orders" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_orders_dynamodb,
+    aws_iam_role_policy_attachment.lambda_orders_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "update_order" {
   function_name = "${var.project_name}-${var.environment}-update-order"
 
-  role = aws_iam_role.lambda_execution_role.arn
+  role = aws_iam_role.lambda_orders_role.arn
 
   runtime = "python3.13"
   handler = "update_order.lambda_handler"
@@ -74,4 +84,9 @@ resource "aws_lambda_function" "update_order" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_orders_dynamodb,
+    aws_iam_role_policy_attachment.lambda_orders_basic_execution,
+  ]
 }

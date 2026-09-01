@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "create_invoice" {
   function_name = "${var.project_name}-${var.environment}-create-invoice"
 
-  role    = aws_iam_role.lambda_execution_role.arn
+  role    = aws_iam_role.lambda_invoices_role.arn
   runtime = "python3.13"
   handler = "create_invoice.lambda_handler"
 
@@ -23,12 +23,17 @@ resource "aws_lambda_function" "create_invoice" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_invoices_dynamodb,
+    aws_iam_role_policy_attachment.lambda_invoices_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "get_invoices" {
   function_name = "${var.project_name}-${var.environment}-get-invoices"
 
-  role    = aws_iam_role.lambda_execution_role.arn
+  role    = aws_iam_role.lambda_invoices_role.arn
   runtime = "python3.13"
   handler = "get_invoices.lambda_handler"
 
@@ -49,12 +54,17 @@ resource "aws_lambda_function" "get_invoices" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_invoices_dynamodb,
+    aws_iam_role_policy_attachment.lambda_invoices_basic_execution,
+  ]
 }
 
 resource "aws_lambda_function" "update_invoice" {
   function_name = "${var.project_name}-${var.environment}-update-invoice"
 
-  role    = aws_iam_role.lambda_execution_role.arn
+  role    = aws_iam_role.lambda_invoices_role.arn
   runtime = "python3.13"
   handler = "update_invoice.lambda_handler"
 
@@ -75,4 +85,9 @@ resource "aws_lambda_function" "update_invoice" {
     Environment = var.environment
     Managed     = "Terraform"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_invoices_dynamodb,
+    aws_iam_role_policy_attachment.lambda_invoices_basic_execution,
+  ]
 }
