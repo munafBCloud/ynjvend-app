@@ -104,9 +104,14 @@ def main():
     product_a = f"barcode-test-a-{suffix}"
     duplicate_product = f"barcode-test-dup-{suffix}"
     product_b = f"barcode-test-b-{suffix}"
+    delete_product = f"barcode-test-delete-{suffix}"
+    reuse_product = f"barcode-test-reuse-{suffix}"
+    inconsistent_product = f"barcode-test-inconsistent-{suffix}"
 
     barcode_one = f"91{suffix[:8]}01"
     barcode_two = f"92{suffix[:8]}02"
+    delete_barcode = f"93{suffix[:8]}03"
+    inconsistent_barcode = f"94{suffix[:8]}04"
 
     # Ensure UPC-A is exactly 12 numeric characters.
     barcode_one = "".join(
@@ -119,10 +124,23 @@ def main():
         for char in barcode_two
     )[:12].ljust(12, "2")
 
+    delete_barcode = "".join(
+        str((ord(char) + 5) % 10)
+        for char in delete_barcode
+    )[:12].ljust(12, "3")
+
+    inconsistent_barcode = "".join(
+        str((ord(char) + 7) % 10)
+        for char in inconsistent_barcode
+    )[:12].ljust(12, "4")
+
     cleanup_items = [
         ("a", product_a),
         ("a", duplicate_product),
         ("b", product_b),
+        ("a", delete_product),
+        ("a", reuse_product),
+        ("a", inconsistent_product),
     ]
 
     try:
@@ -491,6 +509,243 @@ def main():
         )
 
         print("[PASS] Cross-tenant registry independence preserved")
+
+        # -------------------------------------------------
+        # Product deletion releases barcode atomically
+        # -------------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory",
+            args.token_a,
+            {
+                "productId": delete_product,
+                "productName": "Barcode Delete Regression Product",
+                "quantityInStock": 5,
+                "barcode": delete_barcode,
+                "barcodeType": "UPC-A",
+            },
+        )
+
+        expect_status(
+            "Create product for barcode delete regression",
+            status,
+            201,
+        )
+
+        status, body = lookup(
+            api,
+            args.token_a,
+            delete_barcode,
+        )
+
+        expect_status(
+            "Delete regression barcode initially resolves",
+            status,
+            200,
+        )
+
+        expect(
+            body.get("item", {}).get("productId") == delete_product,
+            "Delete regression barcode resolved to wrong product",
+        )
+
+        status, body = request(
+            "DELETE",
+            f"{api}/inventory",
+            args.token_a,
+            {
+                "productId": delete_product,
+            },
+        )
+
+        expect_status(
+            "Delete barcoded inventory product",
+            status,
+            200,
+        )
+
+        expect(
+            body.get("deletedItem", {}).get("productId")
+            == delete_product,
+            "Delete response returned wrong product",
+        )
+
+        deleted_inventory = inventory_table.get_item(
+            Key={
+                "companyId": "company-ynj-001",
+                "productId": delete_product,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            deleted_inventory is None,
+            "Deleted inventory record still exists",
+        )
+
+        deleted_registry = barcode_table.get_item(
+            Key={
+                "companyId": "company-ynj-001",
+                "barcode": delete_barcode,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            deleted_registry is None,
+            "Deleted product left a stale barcode registry entry",
+        )
+
+        status, _ = lookup(
+            api,
+            args.token_a,
+            delete_barcode,
+        )
+
+        expect_status(
+            "Deleted product barcode no longer resolves",
+            status,
+            404,
+        )
+
+        print(
+            "[PASS] Product deletion atomically removed "
+            "inventory and barcode mapping"
+        )
+
+        # The released barcode must be reusable by the same tenant.
+        status, body = request(
+            "POST",
+            f"{api}/inventory",
+            args.token_a,
+            {
+                "productId": reuse_product,
+                "productName": "Barcode Reuse Regression Product",
+                "quantityInStock": 3,
+                "barcode": delete_barcode,
+                "barcodeType": "UPC-A",
+            },
+        )
+
+        expect_status(
+            "Reuse barcode after product deletion",
+            status,
+            201,
+        )
+
+        expect(
+            body.get("item", {}).get("productId") == reuse_product,
+            "Reused barcode created wrong product",
+        )
+
+        status, body = lookup(
+            api,
+            args.token_a,
+            delete_barcode,
+        )
+
+        expect_status(
+            "Reused barcode resolves",
+            status,
+            200,
+        )
+
+        expect(
+            body.get("item", {}).get("productId") == reuse_product,
+            "Reused barcode resolves to wrong product",
+        )
+
+        print("[PASS] Deleted product barcode is reusable")
+
+        # -------------------------------------------------
+        # Inconsistent registry fails closed
+        # -------------------------------------------------
+
+        status, _ = request(
+            "POST",
+            f"{api}/inventory",
+            args.token_a,
+            {
+                "productId": inconsistent_product,
+                "productName": "Barcode Integrity Failure Product",
+                "quantityInStock": 2,
+                "barcode": inconsistent_barcode,
+                "barcodeType": "UPC-A",
+            },
+        )
+
+        expect_status(
+            "Create product for inconsistent registry regression",
+            status,
+            201,
+        )
+
+        # Deliberately corrupt only this DEV regression fixture.
+        # The registry key remains valid, but ownership no longer
+        # agrees with the inventory item's productId.
+        barcode_table.update_item(
+            Key={
+                "companyId": "company-ynj-001",
+                "barcode": inconsistent_barcode,
+            },
+            UpdateExpression="SET productId = :productId",
+            ExpressionAttributeValues={
+                ":productId": f"wrong-owner-{suffix}",
+            },
+        )
+
+        status, _ = request(
+            "DELETE",
+            f"{api}/inventory",
+            args.token_a,
+            {
+                "productId": inconsistent_product,
+            },
+        )
+
+        expect_status(
+            "Reject delete when barcode ownership is inconsistent",
+            status,
+            409,
+        )
+
+        preserved_inventory = inventory_table.get_item(
+            Key={
+                "companyId": "company-ynj-001",
+                "productId": inconsistent_product,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            preserved_inventory is not None,
+            "Failed transaction deleted inventory record",
+        )
+
+        preserved_registry = barcode_table.get_item(
+            Key={
+                "companyId": "company-ynj-001",
+                "barcode": inconsistent_barcode,
+            },
+            ConsistentRead=True,
+        ).get("Item")
+
+        expect(
+            preserved_registry is not None,
+            "Failed transaction deleted barcode registry record",
+        )
+
+        expect(
+            preserved_registry.get("productId")
+            == f"wrong-owner-{suffix}",
+            "Failed transaction unexpectedly modified registry ownership",
+        )
+
+        print(
+            "[PASS] Inconsistent barcode ownership fails closed "
+            "without partial deletion"
+        )
 
         print()
         print("==========================================")

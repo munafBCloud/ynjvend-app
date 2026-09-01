@@ -74,7 +74,8 @@ resource "aws_lambda_function" "delete_inventory" {
 
   environment {
     variables = {
-      INVENTORY_TABLE_NAME = aws_dynamodb_table.inventory_v2.name
+      INVENTORY_TABLE_NAME   = aws_dynamodb_table.inventory_v2.name
+      BARCODE_REGISTRY_TABLE = aws_dynamodb_table.barcode_registry.name
     }
   }
 
