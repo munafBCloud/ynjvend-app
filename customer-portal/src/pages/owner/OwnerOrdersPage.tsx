@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -311,11 +312,15 @@ export default function OwnerOrdersPage() {
     );
   }
 
+  const createOrderIdempotencyKeyRef =
+    useRef<string | null>(null);
+
   function resetCreateOrderForm() {
     setSelectedCustomerId("");
     setProductQuantities({});
     setOrderNotes("");
     setCreateOrderError("");
+    createOrderIdempotencyKeyRef.current = null;
   }
 
   function closeCreateOrderForm() {
@@ -350,13 +355,21 @@ export default function OwnerOrdersPage() {
       setSuccessMessage("");
       setUpdateError("");
 
+      if (!createOrderIdempotencyKeyRef.current) {
+        createOrderIdempotencyKeyRef.current =
+          crypto.randomUUID();
+      }
+
       const newOrder =
-        await createOrder({
-          customerId:
-            selectedCustomerId,
-          notes: orderNotes.trim(),
-          items: selectedOrderItems,
-        });
+        await createOrder(
+          {
+            customerId:
+              selectedCustomerId,
+            notes: orderNotes.trim(),
+            items: selectedOrderItems,
+          },
+          createOrderIdempotencyKeyRef.current,
+        );
 
       setOrders(
         (currentOrders) => [

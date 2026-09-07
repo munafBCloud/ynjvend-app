@@ -193,6 +193,220 @@ def validate_money(value, field_name):
     )
 
 
+def get_idempotency_key(event):
+    headers = event.get("headers") or {}
+
+    value = None
+
+    for key, header_value in headers.items():
+        if (
+            isinstance(key, str)
+            and key.lower() == "idempotency-key"
+        ):
+            value = header_value
+            break
+
+    if not isinstance(value, str):
+        raise ValueError(
+            "Idempotency-Key header is required."
+        )
+
+    value = value.strip()
+
+    if not value:
+        raise ValueError(
+            "Idempotency-Key header is required."
+        )
+
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError):
+        raise ValueError(
+            "Idempotency-Key header must be a valid UUID."
+        )
+
+    return str(parsed)
+
+
+def get_existing_order(company_id, order_id):
+    response = orders_table.get_item(
+        Key={
+            "companyId": company_id,
+            "orderId": order_id,
+        },
+        ConsistentRead=True,
+    )
+
+    return response.get("Item")
+
+
+def order_matches_request(
+    order,
+    *,
+    customer_id,
+    items,
+    notes,
+):
+    stored_items = order.get("items")
+
+    if not isinstance(stored_items, list):
+        return False
+
+    if len(stored_items) != len(items):
+        return False
+
+    for stored_item, requested_item in zip(
+        stored_items,
+        items,
+    ):
+        if not isinstance(stored_item, dict):
+            return False
+
+        try:
+            stored_quantity = int(
+                stored_item.get("quantity")
+            )
+        except (TypeError, ValueError):
+            return False
+
+        if (
+            stored_item.get("productId")
+            != requested_item["productId"]
+            or stored_quantity
+            != requested_item["quantity"]
+        ):
+            return False
+
+    return (
+        order.get("customerId") == customer_id
+        and order.get("notes", "") == notes
+    )
+
+
+def resolve_existing_order(
+    *,
+    company_id,
+    order_id,
+    customer_id,
+    items,
+    notes,
+):
+    existing_order = get_existing_order(
+        company_id,
+        order_id,
+    )
+
+    if not existing_order:
+        return None
+
+    if not order_matches_request(
+        existing_order,
+        customer_id=customer_id,
+        items=items,
+        notes=notes,
+    ):
+        return api_response(
+            409,
+            {
+                "message": (
+                    "Idempotency key has already been "
+                    "used for a different order request."
+                )
+            },
+        )
+
+    return api_response(
+        200,
+        {
+            "message": (
+                "Order already created successfully"
+            ),
+            "order": existing_order,
+            "idempotentReplay": True,
+        },
+    )
+
+
+def validate_replay_request_items(items):
+    if not isinstance(items, list):
+        raise ValueError(
+            "items must be an array"
+        )
+
+    if not items:
+        raise ValueError(
+            "At least one order item is required"
+        )
+
+    if len(items) > MAX_ORDER_ITEMS:
+        raise ValueError(
+            f"An order cannot contain more than "
+            f"{MAX_ORDER_ITEMS} items"
+        )
+
+    validated_items = []
+    product_ids = set()
+
+    for index, item in enumerate(items):
+        item_number = index + 1
+
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"Order item {item_number} "
+                "must be an object"
+            )
+
+        unexpected_fields = sorted(
+            set(item.keys())
+            - {"productId", "quantity"}
+        )
+
+        if unexpected_fields:
+            raise ValueError(
+                f"Order item {item_number} contains "
+                f"unexpected fields: "
+                f"{', '.join(unexpected_fields)}"
+            )
+
+        if "productId" not in item:
+            raise ValueError(
+                f"Order item {item_number} "
+                "is missing productId"
+            )
+
+        if "quantity" not in item:
+            raise ValueError(
+                f"Order item {item_number} "
+                "is missing quantity"
+            )
+
+        product_id = validate_required_text(
+            item["productId"],
+            f"items[{index}].productId",
+            100,
+        )
+
+        if product_id in product_ids:
+            raise ValueError(
+                f"Duplicate productId: {product_id}"
+            )
+
+        quantity = validate_quantity(
+            item["quantity"]
+        )
+
+        product_ids.add(product_id)
+
+        validated_items.append(
+            {
+                "productId": product_id,
+                "quantity": quantity,
+            }
+        )
+
+    return validated_items
+
+
 def get_customer(company_id, customer_id):
     response = customers_table.get_item(
         Key={
@@ -406,6 +620,18 @@ def lambda_handler(event, context):
                 },
             )
 
+        try:
+            idempotency_key = get_idempotency_key(
+                event
+            )
+        except ValueError as error:
+            return api_response(
+                400,
+                {
+                    "message": str(error)
+                },
+            )
+
         raw_body = event.get("body")
 
         if not raw_body:
@@ -491,6 +717,23 @@ def lambda_handler(event, context):
             body.get("notes")
         )
 
+        replay_items = validate_replay_request_items(
+            body["items"]
+        )
+
+        order_id = f"ord-{idempotency_key}"
+
+        existing_result = resolve_existing_order(
+            company_id=company_id,
+            order_id=order_id,
+            customer_id=customer_id,
+            items=replay_items,
+            notes=notes,
+        )
+
+        if existing_result is not None:
+            return existing_result
+
         customer = get_customer(
             company_id,
             customer_id,
@@ -569,11 +812,10 @@ def lambda_handler(event, context):
             timezone.utc
         ).isoformat()
 
-        order_id = str(uuid.uuid4())
-
         order = {
             "companyId": company_id,
             "orderId": order_id,
+            "idempotencyKey": idempotency_key,
             "customerId": customer_id,
             "businessName": (
                 business_name.strip()
@@ -590,15 +832,39 @@ def lambda_handler(event, context):
             "updatedAt": timestamp,
         }
 
-        orders_table.put_item(
-            Item=order,
-            ConditionExpression=(
-                "attribute_not_exists("
-                "companyId) AND "
-                "attribute_not_exists("
-                "orderId)"
-            ),
-        )
+        try:
+            orders_table.put_item(
+                Item=order,
+                ConditionExpression=(
+                    "attribute_not_exists("
+                    "companyId) AND "
+                    "attribute_not_exists("
+                    "orderId)"
+                ),
+            )
+        except ClientError as error:
+            error_code = (
+                error.response
+                .get("Error", {})
+                .get("Code")
+            )
+
+            if (
+                error_code
+                == "ConditionalCheckFailedException"
+            ):
+                existing_result = resolve_existing_order(
+                    company_id,
+                    order_id,
+                    customer_id,
+                    notes,
+                    replay_items,
+                )
+
+                if existing_result is not None:
+                    return existing_result
+
+            raise
 
         logger.info(
             "Created order %s for customer "

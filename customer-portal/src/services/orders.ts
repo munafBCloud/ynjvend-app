@@ -21,9 +21,13 @@ export async function getOrders(): Promise<Order[]> {
 
 export async function createOrder(
   orderInput: CreateOrderInput,
+  idempotencyKey: string,
 ): Promise<Order> {
   const data = await apiRequest<CreateOrderResponse>("/orders", {
     method: "POST",
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
     body: JSON.stringify(orderInput),
   });
 

@@ -9,6 +9,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
 
 
 def fail(message):
@@ -20,13 +21,27 @@ def ok(message):
     print(f"[PASS] {message}")
 
 
-def request(method, url, token, body=None):
+def request(
+    method,
+    url,
+    token,
+    body=None,
+    idempotency_key=None,
+):
     data = None
 
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+
+    if method == "POST" and url.rstrip("/").endswith("/orders"):
+        if idempotency_key is not False:
+            headers["Idempotency-Key"] = (
+                str(uuid.uuid4())
+                if idempotency_key is None
+                else str(idempotency_key)
+            )
 
     if body is not None:
         data = json.dumps(body).encode("utf-8")

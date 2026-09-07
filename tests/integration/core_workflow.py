@@ -10,6 +10,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 
 
@@ -22,12 +24,26 @@ def ok(message):
     print(f"[PASS] {message}")
 
 
-def request(method, url, token, body=None):
+def request(
+    method,
+    url,
+    token,
+    body=None,
+    idempotency_key=None,
+):
     data = None
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+
+    if method == "POST" and url.rstrip("/").endswith("/orders"):
+        if idempotency_key is not False:
+            headers["Idempotency-Key"] = (
+                str(uuid.uuid4())
+                if idempotency_key is None
+                else str(idempotency_key)
+            )
 
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -906,6 +922,301 @@ def main():
         "Failed completion left inventory unchanged "
         f"at {quantity_after_failed_completion}"
     )
+
+    # ============================================================
+    # ORDER CREATION IDEMPOTENCY TESTS
+    # ============================================================
+
+    print()
+    print("==========================================")
+    print("ORDER CREATION IDEMPOTENCY TESTS")
+    print("==========================================")
+
+    idempotency_body = {
+        "customerId": customer_id,
+        "items": [
+            {
+                "productId": product_id,
+                "quantity": 1,
+            }
+        ],
+        "notes": "Order idempotency regression test",
+    }
+
+    # 19. Missing Idempotency-Key must fail
+    status, payload = request(
+        "POST",
+        f"{api}/orders",
+        token,
+        idempotency_body,
+        idempotency_key=False,
+    )
+
+    expect_status(
+        status,
+        400,
+        "Reject missing order idempotency key",
+        payload,
+    )
+
+    # 20. Malformed Idempotency-Key must fail
+    status, payload = request(
+        "POST",
+        f"{api}/orders",
+        token,
+        idempotency_body,
+        idempotency_key="not-a-valid-uuid",
+    )
+
+    expect_status(
+        status,
+        400,
+        "Reject malformed order idempotency key",
+        payload,
+    )
+
+    # 21. First request with a valid key creates one order
+    order_idempotency_key = str(uuid.uuid4())
+
+    status, payload = request(
+        "POST",
+        f"{api}/orders",
+        token,
+        idempotency_body,
+        idempotency_key=order_idempotency_key,
+    )
+
+    expect_status(
+        status,
+        201,
+        "Create idempotent order",
+        payload,
+    )
+
+    idempotent_order = payload.get("order", {})
+    idempotent_order_id = idempotent_order.get("orderId")
+
+    if not idempotent_order_id:
+        fail("Idempotent order response did not contain orderId")
+
+    expected_idempotent_order_id = (
+        f"ord-{order_idempotency_key}"
+    )
+
+    if idempotent_order_id != expected_idempotent_order_id:
+        fail(
+            "Deterministic orderId mismatch: "
+            f"expected {expected_idempotent_order_id}, "
+            f"got {idempotent_order_id}"
+        )
+
+    cleanup.track_order(idempotent_order_id)
+
+    # 22. Same key + same request must replay original order
+    status, payload = request(
+        "POST",
+        f"{api}/orders",
+        token,
+        idempotency_body,
+        idempotency_key=order_idempotency_key,
+    )
+
+    expect_status(
+        status,
+        200,
+        "Replay idempotent order",
+        payload,
+    )
+
+    replay_order = payload.get("order", {})
+
+    if replay_order.get("orderId") != idempotent_order_id:
+        fail("Idempotent replay returned a different orderId")
+
+    if payload.get("idempotentReplay") is not True:
+        fail("Idempotent replay flag was not true")
+
+    ok("Same idempotency key replayed the original order")
+
+    # 23. Same key + different request must conflict
+    conflicting_body = {
+        "customerId": customer_id,
+        "items": [
+            {
+                "productId": product_id,
+                "quantity": 2,
+            }
+        ],
+        "notes": "Order idempotency regression test",
+    }
+
+    status, payload = request(
+        "POST",
+        f"{api}/orders",
+        token,
+        conflicting_body,
+        idempotency_key=order_idempotency_key,
+    )
+
+    expect_status(
+        status,
+        409,
+        "Reject conflicting idempotency-key reuse",
+        payload,
+    )
+
+    # 24. Verify replay did not persist a duplicate order
+    status, payload = request(
+        "GET",
+        f"{api}/orders",
+        token,
+    )
+
+    expect_status(
+        status,
+        200,
+        "Read orders after idempotency replay",
+        payload,
+    )
+
+    persisted_orders = payload.get(
+        "orders",
+        payload.get("items", []),
+    )
+
+    matching_orders = [
+        item
+        for item in persisted_orders
+        if item.get("orderId") == idempotent_order_id
+    ]
+
+    if len(matching_orders) != 1:
+        fail(
+            "Expected exactly one persisted idempotent order, "
+            f"found {len(matching_orders)}"
+        )
+
+    ok("Idempotent retry created no duplicate order")
+
+    # 25. Concurrent same-key requests must converge
+    concurrent_key = str(uuid.uuid4())
+
+    concurrent_body = {
+        "customerId": customer_id,
+        "items": [
+            {
+                "productId": product_id,
+                "quantity": 1,
+            }
+        ],
+        "notes": "Concurrent idempotency regression test",
+    }
+
+    def create_concurrent_order():
+        return request(
+            "POST",
+            f"{api}/orders",
+            token,
+            concurrent_body,
+            idempotency_key=concurrent_key,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(create_concurrent_order)
+            for _ in range(2)
+        ]
+
+        concurrent_results = [
+            future.result()
+            for future in futures
+        ]
+
+    concurrent_statuses = sorted(
+        status
+        for status, _ in concurrent_results
+    )
+
+    if concurrent_statuses != [200, 201]:
+        print(json.dumps(
+            [
+                {
+                    "status": status,
+                    "payload": payload,
+                }
+                for status, payload in concurrent_results
+            ],
+            indent=2,
+        ))
+        fail(
+            "Concurrent same-key order requests did not "
+            f"return one 201 and one 200: "
+            f"{concurrent_statuses}"
+        )
+
+    concurrent_order_ids = {
+        payload.get("order", {}).get("orderId")
+        for _, payload in concurrent_results
+    }
+
+    if len(concurrent_order_ids) != 1:
+        fail(
+            "Concurrent same-key requests returned "
+            "different orderIds"
+        )
+
+    concurrent_order_id = next(
+        iter(concurrent_order_ids)
+    )
+
+    if not concurrent_order_id:
+        fail(
+            "Concurrent idempotency test returned "
+            "no orderId"
+        )
+
+    expected_concurrent_order_id = (
+        f"ord-{concurrent_key}"
+    )
+
+    if (
+        concurrent_order_id
+        != expected_concurrent_order_id
+    ):
+        fail(
+            "Concurrent deterministic orderId mismatch: "
+            f"expected {expected_concurrent_order_id}, "
+            f"got {concurrent_order_id}"
+        )
+
+    cleanup.track_order(concurrent_order_id)
+
+    replay_payloads = [
+        payload
+        for status, payload in concurrent_results
+        if status == 200
+    ]
+
+    if (
+        len(replay_payloads) != 1
+        or replay_payloads[0].get(
+            "idempotentReplay"
+        ) is not True
+    ):
+        fail(
+            "Concurrent loser did not return "
+            "an idempotent replay response"
+        )
+
+    ok(
+        "Concurrent same-key requests converged "
+        "to one order"
+    )
+
+    print()
+    print("==========================================")
+    print("ALL ORDER IDEMPOTENCY TESTS PASSED")
+    print("==========================================")
 
     print()
     print("==========================================")
