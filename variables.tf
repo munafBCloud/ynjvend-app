@@ -28,3 +28,20 @@ variable "beta_notification_to_email" {
   type        = string
   default     = "itlimited21@gmail.com"
 }
+
+variable "operations_alert_email" {
+  description = "Email recipient for DistroDex operational CloudWatch alarms"
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = (
+      var.operations_alert_email == null
+      ? true
+      : can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.operations_alert_email))
+    )
+
+    error_message = "operations_alert_email must be null or a valid email address."
+  }
+}

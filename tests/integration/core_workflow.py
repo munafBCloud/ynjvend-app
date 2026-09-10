@@ -146,9 +146,23 @@ class DevCleanup:
             return ""
 
     def _validate_dev_guard(self):
-        if "ra280rph8l.execute-api.us-east-1.amazonaws.com" not in self.api:
+        regression_environments = {
+            "https://ra280rph8l.execute-api.us-east-1.amazonaws.com": {
+                "name": "DEV",
+                "table_prefix": "ynj-dev-",
+            },
+            "https://5jdda1zgjk.execute-api.us-east-1.amazonaws.com": {
+                "name": "TEST",
+                "table_prefix": "ynj-test-",
+            },
+        }
+
+        environment = regression_environments.get(self.api)
+
+        if environment is None:
             print(
-                "[CLEANUP] Disabled: API is not the known DEV endpoint."
+                "[CLEANUP] Disabled: API is not an approved "
+                "regression endpoint."
             )
             return False
 
@@ -158,14 +172,17 @@ class DevCleanup:
             )
             return False
 
+        expected_prefix = environment["table_prefix"]
+
         for table_name in self.tables.values():
-            if not table_name.startswith("ynj-dev-"):
+            if not table_name.startswith(expected_prefix):
                 print(
-                    "[CLEANUP] Disabled: non-DEV table detected: "
-                    f"{table_name}"
+                    "[CLEANUP] Disabled: table does not match "
+                    f"{environment['name']} environment: {table_name}"
                 )
                 return False
 
+        self.environment_name = environment["name"]
         return True
 
     def track_product(self, product_id):
@@ -235,13 +252,14 @@ class DevCleanup:
         if not self.enabled:
             print(
                 "[CLEANUP] Automatic cleanup did not run "
-                "because DEV safety validation failed."
+                "because regression safety validation failed."
             )
             return
 
         print()
         print("==========================================")
-        print("DEV REGRESSION CLEANUP")
+        environment_name = getattr(self, "environment_name", "UNKNOWN")
+        print(f"{environment_name} REGRESSION CLEANUP")
         print("==========================================")
 
         # Child/business records first.
@@ -274,7 +292,7 @@ class DevCleanup:
             )
 
         print("==========================================")
-        print("DEV REGRESSION CLEANUP COMPLETE")
+        print(f"{environment_name} REGRESSION CLEANUP COMPLETE")
         print("==========================================")
 
 
@@ -306,7 +324,7 @@ def main():
 
     if not cleanup.enabled:
         fail(
-            "DEV cleanup safety guard failed. "
+            "Regression cleanup safety guard failed. "
             "Regression suite will not run."
         )
 
@@ -320,7 +338,11 @@ def main():
 
     print()
     print("==========================================")
-    print("DISTRODEX DEV CORE WORKFLOW REGRESSION TEST")
+    environment_name = getattr(cleanup, "environment_name", "UNKNOWN")
+    print(
+        f"DISTRODEX {environment_name} "
+        "CORE WORKFLOW REGRESSION TEST"
+    )
     print("==========================================")
     print(f"Test ID: {unique}")
     print()

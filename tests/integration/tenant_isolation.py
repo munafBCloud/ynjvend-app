@@ -198,27 +198,38 @@ def main():
     company_a = decode_company_id(args.token_a)
     company_b = decode_company_id(args.token_b)
 
-    if company_a != "company-ynj-001":
-        fail(
-            f"Unexpected Tenant A companyId: {company_a}"
-        )
+    if not company_a:
+        fail("Tenant A token does not contain custom:companyId")
 
-    if company_b != "company-regression-002":
-        fail(
-            f"Unexpected Tenant B companyId: {company_b}"
-        )
+    if not company_b:
+        fail("Tenant B token does not contain custom:companyId")
 
     if company_a == company_b:
         fail("Tenant A and Tenant B resolve to same company")
+
+    regression_environments = {
+        "https://ra280rph8l.execute-api.us-east-1.amazonaws.com":
+            ("DEV", "ynj-dev-"),
+        "https://5jdda1zgjk.execute-api.us-east-1.amazonaws.com":
+            ("TEST", "ynj-test-"),
+    }
+
+    environment = regression_environments.get(api)
+
+    if environment is None:
+        fail("API is not an approved regression endpoint")
+
+    environment_name, table_prefix = environment
 
     for table in [
         args.inventory_table,
         args.customers_table,
         args.orders_table,
     ]:
-        if not table.startswith("ynj-dev-"):
+        if not table.startswith(table_prefix):
             fail(
-                f"Non-DEV table detected: {table}"
+                f"Table does not match {environment_name} "
+                f"environment: {table}"
             )
 
     cleanup = Cleanup(

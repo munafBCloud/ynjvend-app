@@ -75,6 +75,30 @@ def expect(condition, message):
         raise AssertionError(message)
 
 
+
+def decode_company_id(token):
+    import base64
+    import json
+
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+
+        claims = json.loads(
+            base64.urlsafe_b64decode(payload).decode("utf-8")
+        )
+
+        company_id = claims.get("custom:companyId", "")
+
+        if not isinstance(company_id, str):
+            return ""
+
+        return company_id.strip()
+
+    except Exception:
+        return ""
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -90,6 +114,24 @@ def main():
     args = parser.parse_args()
 
     api = args.api.rstrip("/")
+
+    company_a = decode_company_id(args.token_a)
+    company_b = decode_company_id(args.token_b)
+
+    if not company_a:
+        raise RuntimeError(
+            "Tenant A token does not contain custom:companyId"
+        )
+
+    if not company_b:
+        raise RuntimeError(
+            "Tenant B token does not contain custom:companyId"
+        )
+
+    if company_a == company_b:
+        raise RuntimeError(
+            "Tenant A and Tenant B resolve to the same company"
+        )
 
     dynamodb = boto3.resource(
         "dynamodb",
@@ -112,8 +154,6 @@ def main():
         args.sessions_table
     )
 
-    company_a = "company-ynj-001"
-    company_b = "company-regression-002"
 
     suffix = uuid.uuid4().hex[:8]
 

@@ -31,6 +31,8 @@ locals {
     create_invoice = aws_lambda_function.create_invoice.function_name
     get_invoices   = aws_lambda_function.get_invoices.function_name
     update_invoice = aws_lambda_function.update_invoice.function_name
+
+    create_beta_application = aws_lambda_function.create_beta_application.function_name
   }
 }
 
@@ -51,6 +53,45 @@ resource "aws_cloudwatch_log_group" "api_access_logs" {
 }
 
 # ---------------------------------------------------------
+# Lambda log retention
+# ---------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "lambda_logs" {
+  for_each = local.monitored_lambda_functions
+
+  name              = "/aws/lambda/${each.value}"
+  retention_in_days = local.observability_log_retention_days
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}
+
+# ---------------------------------------------------------
+# Operational alerting
+# ---------------------------------------------------------
+
+resource "aws_sns_topic" "operations_alerts" {
+  name = "${var.project_name}-${var.environment}-operations-alerts"
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+  }
+}
+
+resource "aws_sns_topic_subscription" "operations_email" {
+  count = var.operations_alert_email == null ? 0 : 1
+
+  topic_arn = aws_sns_topic.operations_alerts.arn
+  protocol  = "email"
+  endpoint  = var.operations_alert_email
+}
+
+# ---------------------------------------------------------
 # API Gateway 5xx alarm
 # ---------------------------------------------------------
 
@@ -68,6 +109,9 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
   statistic   = "Sum"
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.operations_alerts.arn]
+  ok_actions    = [aws_sns_topic.operations_alerts.arn]
 
   dimensions = {
     ApiId = aws_apigatewayv2_api.ynj_api.id
@@ -98,6 +142,9 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 
   treat_missing_data = "notBreaching"
 
+  alarm_actions = [aws_sns_topic.operations_alerts.arn]
+  ok_actions    = [aws_sns_topic.operations_alerts.arn]
+
   dimensions = {
     FunctionName = each.value
   }
@@ -125,6 +172,9 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
   statistic   = "Sum"
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.operations_alerts.arn]
+  ok_actions    = [aws_sns_topic.operations_alerts.arn]
 
   dimensions = {
     FunctionName = each.value
