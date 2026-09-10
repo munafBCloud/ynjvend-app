@@ -1255,7 +1255,8 @@ export default function HomePage() {
             <div>
               <strong>Company</strong>
               <a href="#beta">Founding Beta</a>
-              <a href="mailto:hello@distrodex.com">Contact</a>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
             </div>
 
             <div>
