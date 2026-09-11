@@ -20,6 +20,7 @@ data "aws_caller_identity" "current" {}
 locals {
   domain_name     = "distrodexapp.com"
   www_domain_name = "www.distrodexapp.com"
+  app_domain_name = "app.distrodexapp.com"
 
   project_name = "ynj"
   environment  = "prod"
@@ -45,6 +46,7 @@ resource "aws_acm_certificate" "marketing" {
 
   subject_alternative_names = [
     local.www_domain_name,
+    local.app_domain_name,
   ]
 
   validation_method = "DNS"
