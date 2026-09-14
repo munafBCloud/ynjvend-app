@@ -8,7 +8,11 @@ import {
 import { useAuth } from "../../auth/useAuth";
 
 export default function LoginPage() {
-  const { signIn, isAuthenticated } = useAuth();
+  const {
+    signIn,
+    completeNewPassword,
+    isAuthenticated,
+  } = useAuth();
   const location = useLocation();
 
   const locationState = location.state as {
@@ -26,6 +30,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] =
     useState("");
+  const [newPassword, setNewPassword] =
+    useState("");
+  const [confirmNewPassword, setConfirmNewPassword] =
+    useState("");
+  const [newPasswordRequired, setNewPasswordRequired] =
+    useState(false);
 
   const [loading, setLoading] =
     useState(false);
@@ -45,12 +55,62 @@ export default function LoginPage() {
       setLoading(true);
       setError("");
 
-      await signIn(email, password);
+      const result = await signIn(
+        email,
+        password,
+      );
+
+      if (
+        result.status ===
+        "NEW_PASSWORD_REQUIRED"
+      ) {
+        setNewPasswordRequired(true);
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Unable to sign in.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleNewPasswordSubmit(
+    event: FormEvent,
+  ) {
+    event.preventDefault();
+
+    if (newPassword !== confirmNewPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    const passwordMeetsPolicy =
+      newPassword.length >= 12 &&
+      /[a-z]/.test(newPassword) &&
+      /[A-Z]/.test(newPassword) &&
+      /[0-9]/.test(newPassword) &&
+      /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!passwordMeetsPolicy) {
+      setError(
+        "Password must be at least 12 characters and include uppercase, lowercase, a number, and a symbol.",
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      await completeNewPassword(newPassword);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to set your password.",
       );
     } finally {
       setLoading(false);
@@ -185,6 +245,82 @@ export default function LoginPage() {
             </div>
           )}
 
+          {newPasswordRequired ? (
+            <form
+              onSubmit={handleNewPasswordSubmit}
+              className="dd-login__form"
+            >
+              <div className="dd-login__field">
+                <label htmlFor="new-password">
+                  Create password
+                </label>
+
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) =>
+                    setNewPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  placeholder="Create your password"
+                  minLength={12}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="dd-login__field">
+                <label htmlFor="confirm-new-password">
+                  Confirm password
+                </label>
+
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) =>
+                    setConfirmNewPassword(
+                      event.target.value,
+                    )
+                  }
+                  autoComplete="new-password"
+                  placeholder="Confirm your password"
+                  minLength={12}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div
+                  className="dd-login__notice dd-login__notice--error"
+                  role="alert"
+                >
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="dd-login__submit"
+              >
+                <span>
+                  {loading
+                    ? "Setting password..."
+                    : "Create password"}
+                </span>
+
+                {loading && (
+                  <span
+                    className="dd-login__spinner"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            </form>
+          ) : (
           <form
             onSubmit={handleSubmit}
             className="dd-login__form"
@@ -303,6 +439,7 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+          )}
 
           <div className="dd-login__panel-footer">
             <span

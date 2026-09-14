@@ -33,6 +33,10 @@ locals {
     update_invoice = aws_lambda_function.update_invoice.function_name
 
     create_beta_application = aws_lambda_function.create_beta_application.function_name
+
+    provision_beta_application = aws_lambda_function.provision_beta_application.function_name
+    get_company                = aws_lambda_function.get_company.function_name
+    update_company_onboarding  = aws_lambda_function.update_company_onboarding.function_name
   }
 }
 
@@ -179,6 +183,43 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
   dimensions = {
     FunctionName = each.value
   }
+}
+
+# ---------------------------------------------------------
+# Beta provisioning reconciliation failures
+# ---------------------------------------------------------
+
+resource "aws_cloudwatch_log_metric_filter" "beta_provisioning_failed" {
+  name = "${var.project_name}-${var.environment}-beta-provisioning-failed"
+
+  log_group_name = aws_cloudwatch_log_group.lambda_logs["provision_beta_application"].name
+
+  pattern = "{ $.event = \"beta_provisioning_failed\" }"
+
+  metric_transformation {
+    name      = "ProvisioningFailures"
+    namespace = "DistroDex/${var.environment}/Provisioning"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "beta_provisioning_failed" {
+  alarm_name        = "${var.project_name}-${var.environment}-beta-provisioning-failed"
+  alarm_description = "One or more DistroDex beta provisioning reconciliation failures occurred."
+
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  threshold           = 1
+
+  metric_name = "ProvisioningFailures"
+  namespace   = "DistroDex/${var.environment}/Provisioning"
+  period      = 300
+  statistic   = "Sum"
+
+  treat_missing_data = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.operations_alerts.arn]
+  ok_actions    = [aws_sns_topic.operations_alerts.arn]
 }
 
 # ---------------------------------------------------------

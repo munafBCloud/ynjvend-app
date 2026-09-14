@@ -453,3 +453,124 @@ resource "aws_iam_role_policy" "lambda_beta_applications_permissions" {
 # function from switching to a newly-created execution role
 # before its logging and workload permissions are attached.
 # ============================================================
+
+# ------------------------------------------------------------
+# BETA PROVISIONING WORKLOAD
+#
+# Administrative Founding Beta onboarding only.
+# This workload is NOT exposed through API Gateway.
+# ------------------------------------------------------------
+
+resource "aws_iam_role" "lambda_beta_provisioning_role" {
+  name               = "${var.project_name}-${var.environment}-lambda-beta-provisioning-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_workload_assume_role.json
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "BetaProvisioning"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_beta_provisioning_basic_execution" {
+  role       = aws_iam_role.lambda_beta_provisioning_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "lambda_beta_provisioning_permissions" {
+  statement {
+    sid    = "BetaApplicationReadUpdate"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:UpdateItem",
+    ]
+
+    resources = [
+      aws_dynamodb_table.beta_applications.arn,
+    ]
+  }
+
+  statement {
+    sid    = "CompanyProvisioningWrite"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+    ]
+
+    resources = [
+      aws_dynamodb_table.companies.arn,
+    ]
+  }
+
+  statement {
+    sid    = "CognitoOwnerProvisioning"
+    effect = "Allow"
+
+    actions = [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminGetUser",
+    ]
+
+    resources = [
+      aws_cognito_user_pool.ynj_users.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_beta_provisioning_permissions" {
+  name   = "${var.project_name}-${var.environment}-lambda-beta-provisioning"
+  role   = aws_iam_role.lambda_beta_provisioning_role.id
+  policy = data.aws_iam_policy_document.lambda_beta_provisioning_permissions.json
+}
+
+
+# ------------------------------------------------------------
+# COMPANY PROFILE WORKLOAD
+#
+# Authenticated tenant company-profile and onboarding access.
+# This workload has no Cognito administrative permissions.
+# ------------------------------------------------------------
+
+resource "aws_iam_role" "lambda_company_role" {
+  name               = "${var.project_name}-${var.environment}-lambda-company-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_workload_assume_role.json
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "Company"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_company_basic_execution" {
+  role       = aws_iam_role.lambda_company_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "lambda_company_dynamodb" {
+  statement {
+    sid    = "CompanyProfileAccess"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:UpdateItem",
+    ]
+
+    resources = [
+      aws_dynamodb_table.companies.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_company_dynamodb" {
+  name   = "${var.project_name}-${var.environment}-lambda-company-dynamodb"
+  role   = aws_iam_role.lambda_company_role.id
+  policy = data.aws_iam_policy_document.lambda_company_dynamodb.json
+}

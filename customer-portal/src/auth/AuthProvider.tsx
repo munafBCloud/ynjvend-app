@@ -9,6 +9,7 @@ import {
 
 import {
   confirmResetPassword as amplifyConfirmResetPassword,
+  confirmSignIn as amplifyConfirmSignIn,
   getCurrentUser,
   resetPassword as amplifyResetPassword,
   signIn as amplifySignIn,
@@ -21,13 +22,29 @@ type AuthUser = {
   email?: string;
 };
 
+export type SignInResult =
+  | {
+      status: "SIGNED_IN";
+    }
+  | {
+      status: "NEW_PASSWORD_REQUIRED";
+    };
+
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<SignInResult>;
+  completeNewPassword: (
+    newPassword: string,
+  ) => Promise<void>;
   signOut: () => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<void>;
+  requestPasswordReset: (
+    email: string,
+  ) => Promise<void>;
   confirmPasswordReset: (
     email: string,
     code: string,
@@ -36,16 +53,20 @@ type AuthContextValue = {
   refreshUser: () => Promise<void>;
 };
 
-export const AuthContext = createContext<AuthContextValue | undefined>(
-  undefined,
-);
+export const AuthContext =
+  createContext<AuthContextValue | undefined>(
+    undefined,
+  );
 
 type AuthProviderProps = {
   children: ReactNode;
 };
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+export function AuthProvider({
+  children,
+}: AuthProviderProps) {
+  const [user, setUser] =
+    useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
@@ -75,10 +96,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [refreshUser]);
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (
+      email: string,
+      password: string,
+    ): Promise<SignInResult> => {
       const result = await amplifySignIn({
-        username: email,
+        username: email.trim().toLowerCase(),
         password,
+      });
+
+      if (result.isSignedIn) {
+        await refreshUser();
+
+        return {
+          status: "SIGNED_IN",
+        };
+      }
+
+      if (
+        result.nextStep.signInStep ===
+        "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED"
+      ) {
+        return {
+          status: "NEW_PASSWORD_REQUIRED",
+        };
+      }
+
+      throw new Error(
+        `Unsupported sign-in step: ${result.nextStep.signInStep}`,
+      );
+    },
+    [refreshUser],
+  );
+
+  const completeNewPassword = useCallback(
+    async (newPassword: string) => {
+      const result = await amplifyConfirmSignIn({
+        challengeResponse: newPassword,
       });
 
       if (!result.isSignedIn) {
@@ -127,6 +181,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       loading,
       isAuthenticated: user !== null,
       signIn,
+      completeNewPassword,
       signOut,
       requestPasswordReset,
       confirmPasswordReset,
@@ -136,6 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user,
       loading,
       signIn,
+      completeNewPassword,
       signOut,
       requestPasswordReset,
       confirmPasswordReset,
@@ -149,4 +205,3 @@ export function AuthProvider({ children }: AuthProviderProps) {
     </AuthContext.Provider>
   );
 }
-

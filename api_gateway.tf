@@ -664,3 +664,65 @@ resource "aws_lambda_permission" "allow_complete_receiving_session_api_gateway" 
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*"
 }
+
+
+# ---------------------------------------------------------
+# GET COMPANY
+# Authenticated tenant company profile.
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "get_company_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.get_company.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "get_company" {
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "GET /company"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.get_company_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_get_company_api_gateway" {
+  statement_id  = "AllowGetCompanyAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_company.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/company"
+}
+
+
+# ---------------------------------------------------------
+# UPDATE COMPANY ONBOARDING
+# Authenticated tenant onboarding completion.
+# ---------------------------------------------------------
+
+resource "aws_apigatewayv2_integration" "update_company_onboarding_integration" {
+  api_id                 = aws_apigatewayv2_api.ynj_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.update_company_onboarding.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "update_company_onboarding" {
+  api_id             = aws_apigatewayv2_api.ynj_api.id
+  route_key          = "PUT /company/onboarding"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+
+  target = "integrations/${aws_apigatewayv2_integration.update_company_onboarding_integration.id}"
+}
+
+resource "aws_lambda_permission" "allow_update_company_onboarding_api_gateway" {
+  statement_id  = "AllowUpdateCompanyOnboardingAPI"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_company_onboarding.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/PUT/company/onboarding"
+}

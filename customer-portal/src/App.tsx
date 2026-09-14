@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router";
 
+import OnboardingGate from "./auth/OnboardingGate";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import OwnerLayout from "./layouts/OwnerLayout";
 
@@ -14,6 +15,7 @@ import OwnerInventoryPage from "./pages/owner/OwnerInventoryPage";
 import OwnerInvoicesPage from "./pages/owner/OwnerInvoicesPage";
 import OwnerOrdersPage from "./pages/owner/OwnerOrdersPage";
 import OwnerReceivingPage from "./pages/owner/OwnerReceivingPage";
+import OwnerSetupPage from "./pages/owner/OwnerSetupPage";
 
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -38,10 +40,21 @@ export default function App() {
       />
 
       <Route
+        path="/owner/setup"
+        element={
+          <ProtectedRoute>
+            <OwnerSetupPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/owner"
         element={
           <ProtectedRoute>
-            <OwnerLayout />
+            <OnboardingGate>
+              <OwnerLayout />
+            </OnboardingGate>
           </ProtectedRoute>
         }
       >

@@ -87,3 +87,45 @@ resource "aws_lambda_permission" "allow_create_beta_application_api_gateway" {
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/*/beta-applications"
 }
+
+
+# =========================================================
+# Distro'Dex Founding Beta Provisioning
+#
+# Administrative invocation only.
+# Intentionally has no API Gateway route.
+# =========================================================
+
+resource "aws_lambda_function" "provision_beta_application" {
+  function_name = "${var.project_name}-${var.environment}-provision-beta-application"
+
+  role    = aws_iam_role.lambda_beta_provisioning_role.arn
+  runtime = "python3.13"
+  handler = "provision_beta_application.lambda_handler"
+
+  filename         = "backend/beta_applications/provision_beta_application.zip"
+  source_code_hash = filebase64sha256("backend/beta_applications/provision_beta_application.zip")
+
+  timeout     = 15
+  memory_size = 128
+
+  environment {
+    variables = {
+      BETA_APPLICATIONS_TABLE = aws_dynamodb_table.beta_applications.name
+      COMPANIES_TABLE         = aws_dynamodb_table.companies.name
+      COGNITO_USER_POOL_ID    = aws_cognito_user_pool.ynj_users.id
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "BetaProvisioning"
+  }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_beta_provisioning_permissions,
+    aws_iam_role_policy_attachment.lambda_beta_provisioning_basic_execution,
+  ]
+}
