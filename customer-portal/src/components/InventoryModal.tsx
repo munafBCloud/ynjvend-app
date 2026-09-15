@@ -8,6 +8,10 @@ import type {
   InventoryStatus,
 } from "../types/inventory";
 
+import {
+  inferBarcodeType,
+} from "../utils/barcode";
+
 type InventoryModalProps = {
   open: boolean;
   onClose: () => void;
@@ -23,6 +27,7 @@ type InventoryFormState = {
   reorderLevel: string;
   caseCost: string;
   sellingPrice: string;
+  barcode: string;
   status: InventoryStatus;
 };
 
@@ -33,6 +38,7 @@ const INITIAL_FORM: InventoryFormState = {
   reorderLevel: "",
   caseCost: "",
   sellingPrice: "",
+  barcode: "",
   status: "active",
 };
 
@@ -94,6 +100,13 @@ export default function InventoryModal({
 
     const sellingPrice =
       Number(form.sellingPrice);
+
+    const barcode =
+      form.barcode.trim();
+
+    const barcodeType = barcode
+      ? inferBarcodeType(barcode)
+      : "";
 
     if (
       !productName ||
@@ -171,6 +184,12 @@ export default function InventoryModal({
         caseCost,
         sellingPrice,
         status: form.status,
+        ...(barcode
+          ? {
+              barcode,
+              barcodeType,
+            }
+          : {}),
       });
 
       resetForm();
@@ -469,9 +488,48 @@ export default function InventoryModal({
             </div>
           </section>
 
-          <section className="dd-inventory-modal__section dd-inventory-modal__section--last">
+          <section className="dd-inventory-modal__section">
             <div className="dd-inventory-modal__section-heading">
               <span>04</span>
+
+              <div>
+                <strong>
+                  Product Identification
+                </strong>
+
+                <p>
+                  Optional barcode information
+                  for receiving and lookup.
+                </p>
+              </div>
+            </div>
+
+            <FormField
+              label="Barcode / UPC"
+              htmlFor="inventory-barcode"
+              hint="Optional · Type detected automatically"
+            >
+              <input
+                id="inventory-barcode"
+                value={form.barcode}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    barcode:
+                      event.target.value,
+                  })
+                }
+                disabled={loading}
+                maxLength={80}
+                placeholder="Scan or enter barcode"
+                autoComplete="off"
+              />
+            </FormField>
+          </section>
+
+          <section className="dd-inventory-modal__section dd-inventory-modal__section--last">
+            <div className="dd-inventory-modal__section-heading">
+              <span>05</span>
 
               <div>
                 <strong>

@@ -10,10 +10,6 @@ import {
   BrowserMultiFormatReader,
 } from "@zxing/browser";
 
-import {
-  BarcodeFormat,
-} from "@zxing/library";
-
 import ErrorMessage from "../../components/ErrorMessage";
 
 import { createInventory } from "../../services/inventory";
@@ -31,75 +27,16 @@ import type {
   ReceivingSession,
 } from "../../types/receiving";
 
+import {
+  formatBarcodeType,
+  inferBarcodeType,
+  type BarcodeType,
+} from "../../utils/barcode";
+
 type ActivityItem = {
   receipt: InventoryReceipt;
   productName: string;
 };
-
-type BarcodeType =
-  | "UPC-A"
-  | "UPC-E"
-  | "EAN-8"
-  | "EAN-13"
-  | "CODE-128"
-  | "CODE-39"
-  | "ITF";
-
-const barcodeTypeOptions: BarcodeType[] = [
-  "UPC-A",
-  "UPC-E",
-  "EAN-8",
-  "EAN-13",
-  "CODE-128",
-  "CODE-39",
-  "ITF",
-];
-
-function formatBarcodeType(
-  format: BarcodeFormat,
-): BarcodeType {
-  switch (format) {
-    case BarcodeFormat.UPC_A:
-      return "UPC-A";
-
-    case BarcodeFormat.UPC_E:
-      return "UPC-E";
-
-    case BarcodeFormat.EAN_8:
-      return "EAN-8";
-
-    case BarcodeFormat.EAN_13:
-      return "EAN-13";
-
-    case BarcodeFormat.CODE_39:
-      return "CODE-39";
-
-    case BarcodeFormat.ITF:
-      return "ITF";
-
-    case BarcodeFormat.CODE_128:
-    default:
-      return "CODE-128";
-  }
-}
-
-function inferBarcodeType(
-  value: string,
-): BarcodeType {
-  if (/^\d{12}$/.test(value)) {
-    return "UPC-A";
-  }
-
-  if (/^\d{13}$/.test(value)) {
-    return "EAN-13";
-  }
-
-  if (/^\d{8}$/.test(value)) {
-    return "EAN-8";
-  }
-
-  return "CODE-128";
-}
 
 export default function OwnerReceivingPage() {
   const [session, setSession] =
@@ -337,6 +274,23 @@ export default function OwnerReceivingPage() {
 
               const resolvedType =
                 formatBarcodeType(format);
+
+              if (!resolvedType) {
+                scanLockedRef.current = true;
+
+                controls.stop();
+
+                scannerControlsRef.current =
+                  null;
+
+                setCameraOpen(false);
+
+                setCameraError(
+                  "This barcode format is not currently supported.",
+                );
+
+                return;
+              }
 
               console.log(
                 "Barcode detected:",
@@ -1181,42 +1135,11 @@ export default function OwnerReceivingPage() {
                                 readOnly
                                 className="dd-input mt-2 font-mono opacity-80"
                               />
-                            </div>
 
-                            <div>
-                              <label className="dd-label">
-                                Barcode Type
-                              </label>
-
-                              <select
-                                value={
-                                  newBarcodeType
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
-                                  setNewBarcodeType(
-                                    event.target
-                                      .value as BarcodeType,
-                                  )
-                                }
-                                className="dd-input mt-2"
-                              >
-                                {barcodeTypeOptions.map(
-                                  (type) => (
-                                    <option
-                                      key={
-                                        type
-                                      }
-                                      value={
-                                        type
-                                      }
-                                    >
-                                      {type}
-                                    </option>
-                                  ),
-                                )}
-                              </select>
+                              <p className="mt-2 text-xs text-[var(--dd-text-muted)]">
+                                Barcode type detected
+                                automatically.
+                              </p>
                             </div>
 
                             <div>
