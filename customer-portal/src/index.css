@@ -7045,3 +7045,15 @@ tbody tr:last-child
 }
 
 /* ===== DISTRODEX AUTH RECOVERY END ===== */
+
+/* Invoice export */
+.dd-invoice-action--export {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+  color: #60a5fa;
+}
+
+.dd-invoice-action--export:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.14);
+}

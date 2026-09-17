@@ -15,9 +15,18 @@ import {
 } from "../../services/invoices";
 
 import {
+  getCompany,
+} from "../../services/company";
+
+import {
   formatCurrency,
   formatDate,
 } from "../../utils/formatters";
+
+import {
+  openInvoiceExportWindow,
+  printInvoice,
+} from "../../utils/invoiceExport";
 
 import type {
   Invoice,
@@ -627,6 +636,45 @@ function InvoiceCard({
   onToggle,
   onUpdate,
 }: InvoiceCardProps) {
+  async function handleInvoiceExport() {
+    let exportWindow: Window | null = null;
+
+    try {
+      /*
+       * Open synchronously from the user's tap so mobile
+       * Safari/Chrome treat this as a user-initiated window.
+       */
+      exportWindow =
+        openInvoiceExportWindow();
+
+      const company = await getCompany();
+
+      printInvoice(
+        invoice,
+        company,
+        exportWindow,
+      );
+    } catch (exportError) {
+      console.error(
+        "Unable to export invoice:",
+        exportError,
+      );
+
+      if (
+        exportWindow &&
+        !exportWindow.closed
+      ) {
+        exportWindow.close();
+      }
+
+      window.alert(
+        exportError instanceof Error
+          ? exportError.message
+          : "Unable to export invoice.",
+      );
+    }
+  }
+
   return (
     <article
       className={[
@@ -913,6 +961,16 @@ function InvoiceCard({
               </div>
 
               <div className="dd-invoice-detail__action-grid">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleInvoiceExport();
+                  }}
+                  className="dd-invoice-action dd-invoice-action--export"
+                >
+                  Export Invoice
+                </button>
+
                 {invoice.status ===
                   "Draft" && (
                   <button
