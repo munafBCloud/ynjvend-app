@@ -514,6 +514,7 @@ data "aws_iam_policy_document" "lambda_beta_provisioning_permissions" {
     actions = [
       "cognito-idp:AdminCreateUser",
       "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminUpdateUserAttributes",
     ]
 
     resources = [

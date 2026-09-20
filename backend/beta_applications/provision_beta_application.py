@@ -322,6 +322,37 @@ def verify_cognito_user(
     )
 
 
+def ensure_verified_email(user, application_id, company_id):
+    attributes = get_cognito_attributes(user)
+
+    if attributes.get("email_verified") == "true":
+        return user
+
+    cognito.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=user["Username"],
+        UserAttributes=[
+            {
+                "Name": "email_verified",
+                "Value": "true",
+            },
+        ],
+    )
+
+    log(
+        "INFO",
+        "beta_provisioning_user_email_verified",
+        applicationId=application_id,
+        companyId=company_id,
+        username=user.get("Username"),
+    )
+
+    return cognito.admin_get_user(
+        UserPoolId=user_pool_id,
+        Username=user["Username"],
+    )
+
+
 def ensure_cognito_user(application):
     application_id = application["applicationId"]
     company_id = clean_string(application.get("companyId"))
@@ -342,6 +373,12 @@ def ensure_cognito_user(application):
             email,
         )
 
+        user = ensure_verified_email(
+            user,
+            application_id,
+            company_id,
+        )
+
         return user
 
     except cognito.exceptions.UserNotFoundException:
@@ -355,6 +392,10 @@ def ensure_cognito_user(application):
                 {
                     "Name": "email",
                     "Value": email,
+                },
+                {
+                    "Name": "email_verified",
+                    "Value": "true",
                 },
                 {
                     "Name": "custom:companyId",
@@ -389,6 +430,12 @@ def ensure_cognito_user(application):
         application_id,
         company_id,
         email,
+    )
+
+    user = ensure_verified_email(
+        user,
+        application_id,
+        company_id,
     )
 
     return user
