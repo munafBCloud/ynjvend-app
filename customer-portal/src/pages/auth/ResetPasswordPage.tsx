@@ -13,7 +13,10 @@ type ResetPasswordLocationState = {
 };
 
 export default function ResetPasswordPage() {
-  const { confirmPasswordReset } = useAuth();
+  const {
+    confirmPasswordReset,
+    requestPasswordReset,
+  } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -33,7 +36,10 @@ export default function ResetPasswordPage() {
     useState("");
 
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
+  const [resendMessage, setResendMessage] =
+    useState("");
 
   if (!email) {
     return (
@@ -42,6 +48,39 @@ export default function ResetPasswordPage() {
         replace
       />
     );
+  }
+
+  async function handleResendCode() {
+    if (resending || loading) {
+      return;
+    }
+
+    try {
+      setResending(true);
+      setError("");
+      setResendMessage("");
+
+      await requestPasswordReset(email);
+
+      setConfirmationCode("");
+      setResendMessage(
+        "A new verification code was requested. " +
+          "Use the newest code you receive.",
+      );
+    } catch (resetError) {
+      console.error(
+        "Unable to resend password reset code:",
+        resetError,
+      );
+
+      setError(
+        resetError instanceof Error
+          ? resetError.message
+          : "Unable to send a new verification code.",
+      );
+    } finally {
+      setResending(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -313,14 +352,29 @@ export default function ResetPasswordPage() {
             </button>
           </form>
 
+          {resendMessage && (
+            <div
+              className="dd-login__notice"
+              role="status"
+            >
+              <span>{resendMessage}</span>
+            </div>
+          )}
+
           <div className="dd-auth__actions">
-            <Link
-              to="/forgot-password"
+            <button
+              type="button"
               className="dd-auth__back"
+              onClick={() => {
+                void handleResendCode();
+              }}
+              disabled={resending || loading}
             >
               <span aria-hidden="true">←</span>
-              Request a new code
-            </Link>
+              {resending
+                ? "Requesting new code..."
+                : "Request a new code"}
+            </button>
           </div>
 
           <div className="dd-login__panel-footer">
