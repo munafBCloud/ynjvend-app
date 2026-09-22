@@ -41,3 +41,20 @@ output "ses_dkim_tokens" {
   description = "Easy DKIM tokens for the DistroDex SES identity"
   value       = aws_sesv2_email_identity.distrodex.dkim_signing_attributes[0].tokens
 }
+
+# Initial DMARC policy for DistroDex application email.
+#
+# Start in monitoring mode while production email is being established.
+# Enforcement can be tightened to quarantine/reject after legitimate
+# sending sources and alignment have been validated.
+resource "aws_route53_record" "dmarc" {
+  zone_id = data.aws_route53_zone.marketing.zone_id
+
+  name = "_dmarc.${local.domain_name}"
+  type = "TXT"
+  ttl  = 300
+
+  records = [
+    "v=DMARC1; p=none; adkim=r; aspf=r; pct=100"
+  ]
+}
