@@ -727,3 +727,31 @@ resource "aws_lambda_permission" "allow_update_company_onboarding_api_gateway" {
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/PUT/company/onboarding"
 }
+
+
+# =========================================================
+# DistroDex Platform Admin JWT Authorizer
+#
+# Uses the dedicated admin portal Cognito client. Individual
+# admin Lambdas must additionally require membership in the
+# PlatformAdmins Cognito group.
+# =========================================================
+
+resource "aws_apigatewayv2_authorizer" "admin_cognito_jwt" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  name            = "ynj-admin-cognito-jwt"
+  authorizer_type = "JWT"
+
+  identity_sources = [
+    "$request.header.Authorization"
+  ]
+
+  jwt_configuration {
+    audience = [
+      aws_cognito_user_pool_client.admin_portal.id
+    ]
+
+    issuer = "https://${aws_cognito_user_pool.ynj_users.endpoint}"
+  }
+}

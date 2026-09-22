@@ -61,3 +61,14 @@ output "inventory_receipts_table_name" {
 output "inventory_receiving_sessions_table_name" {
   value = aws_dynamodb_table.inventory_receiving_sessions.name
 }
+
+
+output "cognito_platform_admin_group_name" {
+  description = "Cognito group for DistroDex platform administrators"
+  value       = aws_cognito_user_group.platform_admins.name
+}
+
+output "cognito_admin_portal_client_id" {
+  description = "Cognito app client ID for the DistroDex platform admin portal"
+  value       = aws_cognito_user_pool_client.admin_portal.id
+}

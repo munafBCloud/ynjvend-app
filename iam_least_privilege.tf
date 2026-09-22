@@ -575,3 +575,52 @@ resource "aws_iam_role_policy" "lambda_company_dynamodb" {
   role   = aws_iam_role.lambda_company_role.id
   policy = data.aws_iam_policy_document.lambda_company_dynamodb.json
 }
+
+
+# ------------------------------------------------------------
+# PLATFORM ADMIN READ WORKLOAD
+#
+# Read-only access for the internal DistroDex administration
+# control plane. This role has no customer workload, SES,
+# Cognito administration, or provisioning permissions.
+# ------------------------------------------------------------
+
+resource "aws_iam_role" "lambda_platform_admin_read_role" {
+  name = "${var.project_name}-${var.environment}-lambda-platform-admin-read-role"
+
+  assume_role_policy = data.aws_iam_policy_document.lambda_workload_assume_role.json
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "PlatformAdminRead"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_platform_admin_read_basic_execution" {
+  role       = aws_iam_role.lambda_platform_admin_read_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "lambda_platform_admin_read_permissions" {
+  statement {
+    sid    = "BetaApplicationReadOnly"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:Scan",
+    ]
+
+    resources = [
+      aws_dynamodb_table.beta_applications.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_platform_admin_read_permissions" {
+  name = "${var.project_name}-${var.environment}-lambda-platform-admin-read"
+
+  role   = aws_iam_role.lambda_platform_admin_read_role.id
+  policy = data.aws_iam_policy_document.lambda_platform_admin_read_permissions.json
+}

@@ -34,6 +34,8 @@ locals {
 
     create_beta_application = aws_lambda_function.create_beta_application.function_name
 
+    admin_get_beta_applications = aws_lambda_function.admin_get_beta_applications.function_name
+
     provision_beta_application = aws_lambda_function.provision_beta_application.function_name
     get_company                = aws_lambda_function.get_company.function_name
     update_company_onboarding  = aws_lambda_function.update_company_onboarding.function_name

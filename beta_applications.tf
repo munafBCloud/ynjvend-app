@@ -129,3 +129,72 @@ resource "aws_lambda_function" "provision_beta_application" {
     aws_iam_role_policy_attachment.lambda_beta_provisioning_basic_execution,
   ]
 }
+
+
+# =========================================================
+# DistroDex Platform Admin - Beta Application Read API
+#
+# Internal read-only endpoint. API Gateway validates tokens
+# issued for the dedicated admin portal client. The Lambda
+# additionally requires PlatformAdmins Cognito membership.
+# =========================================================
+
+resource "aws_lambda_function" "admin_get_beta_applications" {
+  function_name = "${var.project_name}-${var.environment}-admin-get-beta-applications"
+
+  role    = aws_iam_role.lambda_platform_admin_read_role.arn
+  runtime = "python3.13"
+  handler = "get_beta_applications.lambda_handler"
+
+  filename         = "backend/admin/get_beta_applications.zip"
+  source_code_hash = filebase64sha256("backend/admin/get_beta_applications.zip")
+
+  timeout     = 10
+  memory_size = 128
+
+  environment {
+    variables = {
+      BETA_APPLICATIONS_TABLE = aws_dynamodb_table.beta_applications.name
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "PlatformAdminRead"
+  }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_platform_admin_read_permissions,
+    aws_iam_role_policy_attachment.lambda_platform_admin_read_basic_execution,
+  ]
+}
+
+resource "aws_apigatewayv2_integration" "admin_get_beta_applications" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.admin_get_beta_applications.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "admin_get_beta_applications" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "GET /admin/beta-applications"
+  target    = "integrations/${aws_apigatewayv2_integration.admin_get_beta_applications.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.admin_cognito_jwt.id
+}
+
+resource "aws_lambda_permission" "allow_admin_get_beta_applications_api_gateway" {
+  statement_id = "AllowAdminGetBetaApplicationsFromAPIGateway"
+
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.admin_get_beta_applications.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/beta-applications"
+}

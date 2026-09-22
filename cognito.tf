@@ -115,3 +115,58 @@ resource "aws_cognito_user_group" "employees" {
   user_pool_id = aws_cognito_user_pool.ynj_users.id
   precedence   = 10
 }
+
+
+# =========================================================
+# DistroDex Platform Administration
+#
+# Platform administration is intentionally separated from
+# customer-company authorization. Membership in the existing
+# Admins group does NOT grant access to the platform admin
+# control plane.
+# =========================================================
+
+resource "aws_cognito_user_group" "platform_admins" {
+  name         = "PlatformAdmins"
+  description  = "DistroDex platform administrators"
+  user_pool_id = aws_cognito_user_pool.ynj_users.id
+  precedence   = 0
+}
+
+resource "aws_cognito_user_pool_client" "admin_portal" {
+  name         = "${var.project_name}-${var.environment}-admin-portal"
+  user_pool_id = aws_cognito_user_pool.ynj_users.id
+
+  generate_secret = false
+
+  read_attributes = [
+    "email",
+    "email_verified",
+    "custom:companyId",
+    "custom:role",
+  ]
+
+  write_attributes = [
+    "email",
+  ]
+
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
+
+  prevent_user_existence_errors = "ENABLED"
+
+  access_token_validity  = 60
+  id_token_validity      = 60
+  refresh_token_validity = 7
+
+  token_validity_units {
+    access_token  = "minutes"
+    id_token      = "minutes"
+    refresh_token = "days"
+  }
+
+  enable_token_revocation = true
+}
