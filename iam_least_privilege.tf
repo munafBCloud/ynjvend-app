@@ -609,6 +609,7 @@ data "aws_iam_policy_document" "lambda_platform_admin_read_permissions" {
     effect = "Allow"
 
     actions = [
+      "dynamodb:GetItem",
       "dynamodb:Scan",
     ]
 

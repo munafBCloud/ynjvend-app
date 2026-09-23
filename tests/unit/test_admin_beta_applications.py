@@ -80,6 +80,74 @@ class AdminBetaApplicationsTests(unittest.TestCase):
         )
         table.scan.assert_called_once_with()
 
+    def test_platform_admin_can_get_application_detail(self):
+        module, table = load_module()
+
+        table.get_item.return_value = {
+            "Item": {
+                "applicationId": "application-test-123",
+                "businessName": "Example Distributor",
+                "status": "submitted",
+            }
+        }
+
+        event = event_with_groups(
+            "[Admins PlatformAdmins]"
+        )
+        event["pathParameters"] = {
+            "applicationId": "application-test-123"
+        }
+
+        response = module.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(
+            json.loads(response["body"]),
+            {
+                "application": {
+                    "applicationId": "application-test-123",
+                    "businessName": "Example Distributor",
+                    "status": "submitted",
+                }
+            },
+        )
+
+        table.get_item.assert_called_once_with(
+            Key={
+                "applicationId": "application-test-123"
+            }
+        )
+        table.scan.assert_not_called()
+
+    def test_unknown_application_returns_404(self):
+        module, table = load_module()
+
+        table.get_item.return_value = {}
+
+        event = event_with_groups(
+            "[Admins PlatformAdmins]"
+        )
+        event["pathParameters"] = {
+            "applicationId": "missing-application"
+        }
+
+        response = module.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(
+            json.loads(response["body"]),
+            {
+                "message": "Beta application not found."
+            },
+        )
+
+        table.get_item.assert_called_once_with(
+            Key={
+                "applicationId": "missing-application"
+            }
+        )
+        table.scan.assert_not_called()
+
     def test_missing_group_is_forbidden(self):
         module, table = load_module()
 

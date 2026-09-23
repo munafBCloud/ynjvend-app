@@ -88,6 +88,14 @@ def is_platform_admin(event):
     return PLATFORM_ADMIN_GROUP in get_cognito_groups(event)
 
 
+def get_application(application_id):
+    response = beta_applications_table.get_item(
+        Key={"applicationId": application_id}
+    )
+
+    return response.get("Item")
+
+
 def scan_all_applications():
     applications = []
     scan_arguments = {}
@@ -118,6 +126,42 @@ def lambda_handler(event, context):
                 403,
                 {
                     "message": "Platform administrator access required."
+                },
+            )
+
+        path_parameters = event.get("pathParameters") or {}
+        application_id = path_parameters.get("applicationId")
+
+        if application_id:
+            application_id = str(application_id).strip()
+
+            if not application_id:
+                return api_response(
+                    400,
+                    {
+                        "message": "Application ID is required."
+                    },
+                )
+
+            application = get_application(application_id)
+
+            if application is None:
+                return api_response(
+                    404,
+                    {
+                        "message": "Beta application not found."
+                    },
+                )
+
+            logger.info(
+                "Retrieved beta application %s for platform admin",
+                application_id,
+            )
+
+            return api_response(
+                200,
+                {
+                    "application": application,
                 },
             )
 

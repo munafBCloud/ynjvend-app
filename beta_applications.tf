@@ -198,3 +198,27 @@ resource "aws_lambda_permission" "allow_admin_get_beta_applications_api_gateway"
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/beta-applications"
 }
+
+
+# Platform admin detail lookup for one beta application.
+# Uses the same read-only Lambda and JWT authorization boundary
+# as the beta application collection endpoint.
+resource "aws_apigatewayv2_route" "admin_get_beta_application" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "GET /admin/beta-applications/{applicationId}"
+  target    = "integrations/${aws_apigatewayv2_integration.admin_get_beta_applications.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.admin_cognito_jwt.id
+}
+
+resource "aws_lambda_permission" "allow_admin_get_beta_application_api_gateway" {
+  statement_id = "AllowAdminGetBetaApplicationFromAPIGateway"
+
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.admin_get_beta_applications.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/beta-applications/*"
+}
