@@ -625,3 +625,61 @@ resource "aws_iam_role_policy" "lambda_platform_admin_read_permissions" {
   role   = aws_iam_role.lambda_platform_admin_read_role.id
   policy = data.aws_iam_policy_document.lambda_platform_admin_read_permissions.json
 }
+
+
+# =========================================================
+# Platform admin beta application approval
+#
+# This Lambda is intentionally orchestration-only:
+# - read the requested beta application
+# - invoke the existing provisioning Lambda
+#
+# It must not directly mutate companies or Cognito users.
+# =========================================================
+
+resource "aws_iam_role" "lambda_platform_admin_approval" {
+  name = "${var.project_name}-${var.environment}-platform-admin-approval-role"
+
+  assume_role_policy = data.aws_iam_policy_document.lambda_workload_assume_role.json
+}
+
+data "aws_iam_policy_document" "lambda_platform_admin_approval_permissions" {
+  statement {
+    sid    = "ReadBetaApplication"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:GetItem",
+    ]
+
+    resources = [
+      aws_dynamodb_table.beta_applications.arn,
+    ]
+  }
+
+  statement {
+    sid    = "InvokeBetaProvisioning"
+    effect = "Allow"
+
+    actions = [
+      "lambda:InvokeFunction",
+    ]
+
+    resources = [
+      aws_lambda_function.provision_beta_application.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_platform_admin_approval" {
+  name = "${var.project_name}-${var.environment}-platform-admin-approval"
+  role = aws_iam_role.lambda_platform_admin_approval.id
+
+  policy = data.aws_iam_policy_document.lambda_platform_admin_approval_permissions.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_platform_admin_approval_basic_execution" {
+  role = aws_iam_role.lambda_platform_admin_approval.name
+
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}

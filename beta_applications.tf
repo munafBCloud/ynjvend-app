@@ -222,3 +222,67 @@ resource "aws_lambda_permission" "allow_admin_get_beta_application_api_gateway" 
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/beta-applications/*"
 }
+
+
+# =========================================================
+# Platform admin beta application approval
+# =========================================================
+
+resource "aws_lambda_function" "admin_approve_beta_application" {
+  function_name = "${var.project_name}-${var.environment}-admin-approve-beta-application"
+  role          = aws_iam_role.lambda_platform_admin_approval.arn
+
+  runtime = "python3.13"
+  handler = "approve_beta_application.lambda_handler"
+
+  filename = "${path.module}/backend/admin/approve_beta_application.zip"
+
+  source_code_hash = filebase64sha256(
+    "${path.module}/backend/admin/approve_beta_application.zip"
+  )
+
+  timeout     = 30
+  memory_size = 128
+
+  environment {
+    variables = {
+      BETA_APPLICATIONS_TABLE    = aws_dynamodb_table.beta_applications.name
+      PROVISIONING_FUNCTION_NAME = aws_lambda_function.provision_beta_application.function_name
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Purpose     = "Platform admin beta application approval"
+  }
+}
+
+resource "aws_apigatewayv2_integration" "admin_approve_beta_application" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.admin_approve_beta_application.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "admin_approve_beta_application" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "POST /admin/beta-applications/{applicationId}/approve"
+  target    = "integrations/${aws_apigatewayv2_integration.admin_approve_beta_application.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.admin_cognito_jwt.id
+}
+
+resource "aws_lambda_permission" "allow_admin_approve_beta_application_api_gateway" {
+  statement_id = "AllowAdminApproveBetaApplicationFromAPIGateway"
+
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.admin_approve_beta_application.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/POST/admin/beta-applications/*/approve"
+}
