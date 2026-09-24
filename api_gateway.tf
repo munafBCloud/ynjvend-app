@@ -12,6 +12,7 @@ locals {
 
     test = [
       "http://localhost:5173",
+      "http://192.168.56.10:5173",
       "https://test-app.distrodexapp.com",
     ]
 
