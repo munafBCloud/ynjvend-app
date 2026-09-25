@@ -683,3 +683,53 @@ resource "aws_iam_role_policy_attachment" "lambda_platform_admin_approval_basic_
 
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+
+# =========================================================
+# PLATFORM ADMIN COMPANY READ WORKLOAD
+#
+# Internal read-only access to the DistroDex company
+# registry. No customer workload mutation, Cognito
+# administration, SES, or provisioning permissions.
+# =========================================================
+
+resource "aws_iam_role" "lambda_platform_admin_company_read_role" {
+  name = "${var.project_name}-${var.environment}-lambda-platform-admin-company-read-role"
+
+  assume_role_policy = data.aws_iam_policy_document.lambda_workload_assume_role.json
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "PlatformAdminCompanyRead"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_platform_admin_company_read_basic_execution" {
+  role       = aws_iam_role.lambda_platform_admin_company_read_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "lambda_platform_admin_company_read_permissions" {
+  statement {
+    sid    = "CompanyRegistryReadOnly"
+    effect = "Allow"
+
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+    ]
+
+    resources = [
+      aws_dynamodb_table.companies.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_platform_admin_company_read_permissions" {
+  name = "${var.project_name}-${var.environment}-lambda-platform-admin-company-read"
+
+  role   = aws_iam_role.lambda_platform_admin_company_read_role.id
+  policy = data.aws_iam_policy_document.lambda_platform_admin_company_read_permissions.json
+}

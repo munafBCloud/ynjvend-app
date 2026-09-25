@@ -286,3 +286,95 @@ resource "aws_lambda_permission" "allow_admin_approve_beta_application_api_gatew
 
   source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/POST/admin/beta-applications/*/approve"
 }
+
+
+# =========================================================
+# DistroDex Platform Admin - Company Read API
+#
+# Internal read-only company registry endpoints.
+# API Gateway validates tokens issued for the dedicated
+# admin portal client. Lambda additionally requires
+# PlatformAdmins Cognito membership.
+# =========================================================
+
+resource "aws_lambda_function" "admin_get_companies" {
+  function_name = "${var.project_name}-${var.environment}-admin-get-companies"
+
+  role    = aws_iam_role.lambda_platform_admin_company_read_role.arn
+  runtime = "python3.13"
+  handler = "get_companies.lambda_handler"
+
+  filename         = "backend/admin/get_companies.zip"
+  source_code_hash = filebase64sha256("backend/admin/get_companies.zip")
+
+  timeout     = 10
+  memory_size = 128
+
+  environment {
+    variables = {
+      COMPANIES_TABLE = aws_dynamodb_table.companies.name
+    }
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    Managed     = "Terraform"
+    Workload    = "PlatformAdminCompanyRead"
+  }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_platform_admin_company_read_permissions,
+    aws_iam_role_policy_attachment.lambda_platform_admin_company_read_basic_execution,
+  ]
+}
+
+resource "aws_apigatewayv2_integration" "admin_get_companies" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.admin_get_companies.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "admin_get_companies" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "GET /admin/companies"
+  target    = "integrations/${aws_apigatewayv2_integration.admin_get_companies.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.admin_cognito_jwt.id
+}
+
+resource "aws_lambda_permission" "allow_admin_get_companies_api_gateway" {
+  statement_id = "AllowAdminGetCompaniesFromAPIGateway"
+
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.admin_get_companies.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/companies"
+}
+
+
+# Platform admin detail lookup for one company.
+resource "aws_apigatewayv2_route" "admin_get_company" {
+  api_id = aws_apigatewayv2_api.ynj_api.id
+
+  route_key = "GET /admin/companies/{companyId}"
+  target    = "integrations/${aws_apigatewayv2_integration.admin_get_companies.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.admin_cognito_jwt.id
+}
+
+resource "aws_lambda_permission" "allow_admin_get_company_api_gateway" {
+  statement_id = "AllowAdminGetCompanyFromAPIGateway"
+
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.admin_get_companies.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.ynj_api.execution_arn}/*/GET/admin/companies/*"
+}
