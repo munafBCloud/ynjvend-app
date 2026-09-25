@@ -151,3 +151,71 @@ export async function approveBetaApplication(
     application: data.application,
   }
 }
+
+import type {
+  CompanyDetailResponse,
+  CompanyListResponse,
+} from '../types/company'
+
+export async function getCompanies():
+  Promise<CompanyListResponse> {
+  const token = await getAccessToken()
+
+  const response = await fetch(
+    `${apiUrl}/admin/companies`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(
+      'Your account is not authorized for platform administration.',
+    )
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load companies (${response.status}).`,
+    )
+  }
+
+  return response.json()
+}
+
+export async function getCompany(
+  companyId: string,
+): Promise<CompanyDetailResponse> {
+  const token = await getAccessToken()
+
+  const response = await fetch(
+    `${apiUrl}/admin/companies/${encodeURIComponent(companyId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  )
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(
+      'Your account is not authorized for platform administration.',
+    )
+  }
+
+  if (response.status === 404) {
+    throw new Error('Company not found.')
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load company (${response.status}).`,
+    )
+  }
+
+  return response.json()
+}

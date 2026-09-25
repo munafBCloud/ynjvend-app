@@ -644,3 +644,203 @@ tbody tr:last-child td {
     flex: 1;
   }
 }
+
+
+/* =========================================================
+   Platform company management
+   ========================================================= */
+
+.companies-view {
+  width: 100%;
+}
+
+.companies-heading,
+.company-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.companies-heading h1,
+.company-detail-heading h1 {
+  margin: 4px 0 8px;
+}
+
+.companies-heading p,
+.company-detail-heading p {
+  margin-top: 0;
+}
+
+.section-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.company-count {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.company-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.company-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+}
+
+.company-table th,
+.company-table td {
+  padding: 16px 18px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.company-table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.company-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.company-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.company-table td strong,
+.company-table td span {
+  display: block;
+}
+
+.company-id-preview,
+.company-secondary {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  opacity: 0.55;
+}
+
+.company-id-preview {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.company-open-button,
+.back-button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.company-open-button {
+  padding: 7px 12px;
+}
+
+.company-open-button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.back-button {
+  margin-bottom: 24px;
+  padding: 8px 12px;
+}
+
+.company-detail-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.detail-card {
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.company-data-list {
+  margin: 18px 0 0;
+}
+
+.company-data-list > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.company-data-list > div:last-child {
+  border-bottom: 0;
+}
+
+.company-data-list dt {
+  font-size: 0.8rem;
+  opacity: 0.55;
+}
+
+.company-data-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.system-value {
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.status-pill {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.company-loading,
+.company-empty,
+.portal-error {
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.portal-error {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .company-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .companies-heading,
+  .company-detail-heading {
+    flex-direction: column;
+  }
+}

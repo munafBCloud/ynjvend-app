@@ -1,8 +1,16 @@
+import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { ApplicationQueue } from './ApplicationQueue'
+import { Companies } from './Companies'
+
+type AdminView =
+  | 'applications'
+  | 'companies'
 
 export function AdminShell() {
   const { email, logout } = useAuth()
+  const [activeView, setActiveView] =
+    useState<AdminView>('applications')
 
   return (
     <div className="admin-layout">
@@ -18,8 +26,32 @@ export function AdminShell() {
           </div>
 
           <nav>
-            <button className="nav-item active">
+            <button
+              type="button"
+              className={
+                activeView === 'applications'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActiveView('applications')
+              }
+            >
               Applications
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeView === 'companies'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActiveView('companies')
+              }
+            >
+              Companies
             </button>
           </nav>
         </div>
@@ -29,6 +61,7 @@ export function AdminShell() {
           <strong>{email}</strong>
 
           <button
+            type="button"
             className="sign-out"
             onClick={() => void logout()}
           >
@@ -38,7 +71,9 @@ export function AdminShell() {
       </aside>
 
       <main className="admin-content">
-        <ApplicationQueue />
+        {activeView === 'applications'
+          ? <ApplicationQueue />
+          : <Companies />}
       </main>
     </div>
   )
