@@ -20,6 +20,7 @@ locals {
       "https://distrodexapp.com",
       "https://www.distrodexapp.com",
       "https://app.distrodexapp.com",
+      "https://admin.distrodexapp.com",
     ]
   }
 
