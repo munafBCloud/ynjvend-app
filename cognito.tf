@@ -4,6 +4,19 @@ resource "aws_cognito_user_pool" "ynj_users" {
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
+  # Use the DistroDex SES domain for Cognito transactional email when enabled.
+  # Environments that do not explicitly enable SES retain Cognito's default
+  # email delivery behavior.
+  dynamic "email_configuration" {
+    for_each = var.cognito_ses_enabled ? [1] : []
+
+    content {
+      email_sending_account = "DEVELOPER"
+      source_arn            = var.cognito_ses_source_arn
+      from_email_address    = var.cognito_from_email_address
+    }
+  }
+
   password_policy {
     minimum_length                   = 12
     require_lowercase                = true

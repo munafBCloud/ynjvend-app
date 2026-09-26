@@ -45,3 +45,27 @@ variable "operations_alert_email" {
     error_message = "operations_alert_email must be null or a valid email address."
   }
 }
+
+# =========================================================
+# Cognito transactional email
+# =========================================================
+
+variable "cognito_ses_enabled" {
+  description = "Use Amazon SES for Cognito transactional email"
+  type        = bool
+  default     = false
+}
+
+variable "cognito_ses_source_arn" {
+  description = "Verified SES identity ARN used by Cognito"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "cognito_from_email_address" {
+  description = "From address used for Cognito transactional email"
+  type        = string
+  default     = null
+  nullable    = true
+}
